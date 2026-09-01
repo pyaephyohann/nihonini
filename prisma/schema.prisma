@@ -74,8 +74,10 @@ model User {
   grammarProgresses    UserGrammarProgress[]
   kanjiProgresses      UserKanjiProgress[]
   readingProgresses    UserReadingProgress[]
+  listeningProgresses  UserListeningProgress[]
   practiceAttempts     PracticeAttempt[]
   readingSubmissions   ReadingSubmission[]
+  listeningSubmissions ListeningSubmission[]
 
   @@map("users")
 }
@@ -586,4 +588,114 @@ model ReadingQuestionAttempt {
 
   @@unique([submissionId, questionId])
   @@map("reading_question_attempts")
+}
+
+model Listening {
+  id               String        @id @default(cuid())
+  title            String
+  slug             String        @unique
+  subtitle         String?
+  description      String?       @db.Text
+  audioUrl         String        @map("audio_url")
+  transcript       String?       @db.Text
+  durationSeconds  Int?          @map("duration_seconds")
+  jlptLevel        JapaneseLevel @map("jlpt_level")
+  difficulty       Int           @default(1)
+  estimatedMinutes Int           @default(2) @map("estimated_minutes")
+  order            Int           @map("sort_order")
+  published        Boolean       @default(false)
+  createdAt        DateTime      @default(now()) @map("created_at")
+  updatedAt        DateTime      @updatedAt @map("updated_at")
+
+  questions   ListeningQuestion[]
+  progresses  UserListeningProgress[]
+  submissions ListeningSubmission[]
+
+  @@unique([jlptLevel, order])
+  @@index([jlptLevel, published])
+  @@map("listenings")
+}
+
+model ListeningQuestion {
+  id          String  @id @default(cuid())
+  listeningId String  @map("listening_id")
+  question    String  @db.Text
+  explanation String? @db.Text
+  order       Int     @map("sort_order")
+
+  listening Listening                 @relation(fields: [listeningId], references: [id], onDelete: Cascade)
+  options   ListeningQuestionOption[]
+  attempts  ListeningQuestionAttempt[]
+
+  @@unique([listeningId, order])
+  @@index([listeningId])
+  @@map("listening_questions")
+}
+
+model ListeningQuestionOption {
+  id         String  @id @default(cuid())
+  questionId String  @map("question_id")
+  text       String
+  isCorrect  Boolean @default(false) @map("is_correct")
+  order      Int     @map("sort_order")
+
+  question ListeningQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@unique([questionId, order])
+  @@map("listening_question_options")
+}
+
+model UserListeningProgress {
+  id            String    @id @default(cuid())
+  userId        String    @map("user_id")
+  listeningId   String    @map("listening_id")
+  attemptCount  Int       @default(0) @map("attempt_count")
+  completed     Boolean   @default(false)
+  bestScore     Float     @default(0) @map("best_score")
+  lastScore     Float     @default(0) @map("last_score")
+  mastery       Float     @default(0)
+  lastAttemptAt DateTime? @map("last_attempt_at")
+  completedAt   DateTime? @map("completed_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  listening Listening @relation(fields: [listeningId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, listeningId])
+  @@index([userId])
+  @@map("user_listening_progress")
+}
+
+model ListeningSubmission {
+  id           String   @id @default(cuid())
+  userId       String   @map("user_id")
+  listeningId  String   @map("listening_id")
+  correctCount Int      @map("correct_count")
+  totalCount   Int      @map("total_count")
+  scorePercent Int      @map("score_percent")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  user     User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  listening Listening                @relation(fields: [listeningId], references: [id], onDelete: Cascade)
+  attempts ListeningQuestionAttempt[]
+
+  @@index([userId])
+  @@index([userId, listeningId])
+  @@index([userId, createdAt])
+  @@map("listening_submissions")
+}
+
+model ListeningQuestionAttempt {
+  id               String  @id @default(cuid())
+  submissionId     String  @map("submission_id")
+  questionId       String  @map("question_id")
+  selectedOptionId String  @map("selected_option_id")
+  isCorrect        Boolean @map("is_correct")
+
+  submission ListeningSubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  question   ListeningQuestion   @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@unique([submissionId, questionId])
+  @@map("listening_question_attempts")
 }

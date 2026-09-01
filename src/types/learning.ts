@@ -131,7 +131,7 @@ export type DashboardSnapshot = {
     grammar: number;
     kanji: number;
     reading: number | null;
-    listening: null;
+    listening: number | null;
   };
   continueLearning: {
     lessonTitle: string | null;
@@ -145,7 +145,7 @@ export type JlptSkillProgress = {
   grammar: number;
   kanji: number;
   reading: number | null;
-  listening: null;
+  listening: number | null;
   overall: number;
 };
 
@@ -170,7 +170,7 @@ export type JlptCurriculum = {
 };
 
 export type PracticeSkill = "VOCABULARY" | "GRAMMAR" | "KANJI";
-export type LearningSkill = PracticeSkill | "READING";
+export type LearningSkill = PracticeSkill | "READING" | "LISTENING";
 export type PracticeMode = "REVIEW" | "WEAKNESS" | "LEVEL";
 
 export type PracticeSafeExercise = ClientExercise & {
@@ -227,7 +227,7 @@ export type LearningAnalytics = {
     grammar: SkillAnalytics;
     kanji: SkillAnalytics;
     reading: SkillAnalytics | null;
-    listening: null;
+    listening: SkillAnalytics | null;
   };
   practice: {
     totalAttempts: number;
@@ -271,12 +271,13 @@ export type LearningAnalytics = {
     accuracy: number;
   }[];
   recentActivity: {
-    type: "LESSON_COMPLETED" | "PRACTICE" | "READING";
+    type: "LESSON_COMPLETED" | "PRACTICE" | "READING" | "LISTENING";
     label: string;
     href: string;
     occurredAt: string;
   }[];
   recentReading: RecentReadingActivity[];
+  recentListening: RecentListeningActivity[];
 };
 
 export type ReadingQuestionOptionDTO = {
@@ -350,6 +351,88 @@ export type ReadingSubmissionResult = {
 };
 
 export type RecentReadingActivity = {
+  title: string;
+  slug: string;
+  jlptLevel: JapaneseLevel;
+  correctCount: number;
+  totalCount: number;
+  scorePercent: number;
+  occurredAt: string;
+};
+
+export type ListeningQuestionOptionDTO = {
+  id: string;
+  text: string;
+  order: number;
+};
+
+export type ListeningQuestionDTO = {
+  id: string;
+  question: string;
+  order: number;
+  options: ListeningQuestionOptionDTO[];
+};
+
+export type ListeningSummary = {
+  id: string;
+  title: string;
+  slug: string;
+  subtitle: string | null;
+  description: string | null;
+  jlptLevel: JapaneseLevel;
+  difficulty: number;
+  difficultyLabel: string;
+  estimatedMinutes: number;
+  durationSeconds: number | null;
+  order: number;
+  attemptCount: number;
+  completed: boolean;
+  bestScore: number;
+  lastScore: number;
+  masteryPercent: number;
+};
+
+export type ListeningDetail = ListeningSummary & {
+  audioUrl: string;
+  questions: ListeningQuestionDTO[];
+};
+
+export type ListeningCatalogLevel = {
+  level: JapaneseLevel;
+  listenings: ListeningListItem[];
+};
+
+export type ListeningListItem = ListeningSummary;
+
+export type ListeningGradedAnswer = {
+  questionId: string;
+  question: string;
+  selectedOptionId: string;
+  selectedOptionText: string;
+  correctOptionId: string;
+  correctOptionText: string;
+  isCorrect: boolean;
+  explanation: string | null;
+};
+
+export type ListeningSubmissionResult = {
+  submissionId: string;
+  listeningId: string;
+  listeningTitle: string;
+  listeningSlug: string;
+  jlptLevel: JapaneseLevel;
+  correctCount: number;
+  totalCount: number;
+  incorrectCount: number;
+  scorePercent: number;
+  accuracy: number;
+  masteryPercent: number;
+  completed: boolean;
+  transcript: string | null;
+  answers: ListeningGradedAnswer[];
+};
+
+export type RecentListeningActivity = {
   title: string;
   slug: string;
   jlptLevel: JapaneseLevel;

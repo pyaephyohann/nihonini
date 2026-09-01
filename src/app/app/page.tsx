@@ -123,11 +123,11 @@ export default async function AppDashboardPage() {
               {dashboard.jlptSkillProgress.kanji}%
               {dashboard.jlptSkillProgress.reading !== null &&
                 ` · Reading ${dashboard.jlptSkillProgress.reading}%`}
+              {dashboard.jlptSkillProgress.listening !== null &&
+                ` · Listening ${dashboard.jlptSkillProgress.listening}%`}
             </p>
             <p className="mt-1 text-xs text-muted-foreground">
-              {dashboard.jlptSkillProgress.reading === null
-                ? "Reading progress will appear when published content exists for your level."
-                : "Listening progress will appear when that module is implemented."}
+              Skill progress reflects published content at your target level.
             </p>
           </Card>
           <Card className="sm:col-span-2 lg:col-span-3">

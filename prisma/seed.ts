@@ -14,6 +14,8 @@ import {
   type VocabSeed,
 } from "./seed-data/n5-content";
 import { ALL_READINGS, type ReadingSeed } from "./seed-data/readings";
+import { ALL_LISTENINGS, type ListeningSeed } from "./seed-data/listenings";
+import { ensureListeningAudioFile } from "./seed-data/listening-audio";
 
 config({ path: ".env.local" });
 config({ path: ".env" });
@@ -444,6 +446,83 @@ async function seedReading(reading: ReadingSeed) {
   }
 }
 
+async function seedListening(listening: ListeningSeed) {
+  const audioUrl = ensureListeningAudioFile(listening.slug);
+
+  const record = await prisma.listening.upsert({
+    where: { slug: listening.slug },
+    update: {
+      title: listening.title,
+      subtitle: listening.subtitle ?? null,
+      description: listening.description ?? null,
+      audioUrl,
+      transcript: listening.transcript,
+      durationSeconds: listening.durationSeconds,
+      jlptLevel: listening.jlptLevel,
+      difficulty: listening.difficulty,
+      estimatedMinutes: listening.estimatedMinutes,
+      order: listening.order,
+      published: listening.published,
+    },
+    create: {
+      title: listening.title,
+      slug: listening.slug,
+      subtitle: listening.subtitle ?? null,
+      description: listening.description ?? null,
+      audioUrl,
+      transcript: listening.transcript,
+      durationSeconds: listening.durationSeconds,
+      jlptLevel: listening.jlptLevel,
+      difficulty: listening.difficulty,
+      estimatedMinutes: listening.estimatedMinutes,
+      order: listening.order,
+      published: listening.published,
+    },
+  });
+
+  for (const [questionIndex, question] of listening.questions.entries()) {
+    const questionRecord = await prisma.listeningQuestion.upsert({
+      where: {
+        listeningId_order: {
+          listeningId: record.id,
+          order: questionIndex + 1,
+        },
+      },
+      update: {
+        question: question.question,
+        explanation: question.explanation ?? null,
+      },
+      create: {
+        listeningId: record.id,
+        question: question.question,
+        explanation: question.explanation ?? null,
+        order: questionIndex + 1,
+      },
+    });
+
+    for (const [optionIndex, option] of question.options.entries()) {
+      await prisma.listeningQuestionOption.upsert({
+        where: {
+          questionId_order: {
+            questionId: questionRecord.id,
+            order: optionIndex + 1,
+          },
+        },
+        update: {
+          text: option.text,
+          isCorrect: option.isCorrect,
+        },
+        create: {
+          questionId: questionRecord.id,
+          text: option.text,
+          isCorrect: option.isCorrect,
+          order: optionIndex + 1,
+        },
+      });
+    }
+  }
+}
+
 async function main() {
   console.log("Seeding Nihonini learning content...");
 
@@ -492,6 +571,12 @@ async function main() {
     console.log(`  ✓ Reading: ${reading.slug}`);
   }
 
+  console.log("\nSeeding listenings...");
+  for (const listening of ALL_LISTENINGS) {
+    await seedListening(listening);
+    console.log(`  ✓ Listening: ${listening.slug}`);
+  }
+
   const counts = {
     levels: await prisma.jlptLevel.count(),
     lessons: await prisma.lesson.count(),
@@ -501,6 +586,8 @@ async function main() {
     exercises: await prisma.exercise.count(),
     readings: await prisma.reading.count({ where: { published: true } }),
     readingQuestions: await prisma.readingQuestion.count(),
+    listenings: await prisma.listening.count({ where: { published: true } }),
+    listeningQuestions: await prisma.listeningQuestion.count(),
   };
 
   console.log("\nSeed complete:");
@@ -512,6 +599,8 @@ async function main() {
   console.log(`  Exercises: ${counts.exercises}`);
   console.log(`  Published readings: ${counts.readings}`);
   console.log(`  Reading questions: ${counts.readingQuestions}`);
+  console.log(`  Published listenings: ${counts.listenings}`);
+  console.log(`  Listening questions: ${counts.listeningQuestions}`);
 }
 
 main()

@@ -85,6 +85,13 @@ export function LearningOverview({ analytics }: LearningOverviewProps) {
             compact
           />
         )}
+        {analytics.skills.listening && (
+          <SkillStatCard
+            analytics={analytics.skills.listening}
+            level={analytics.jlpt.currentLevel}
+            compact
+          />
+        )}
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">

@@ -9,10 +9,12 @@ const skillLabels: Record<LearningSkill, string> = {
   GRAMMAR: "Grammar",
   KANJI: "Kanji",
   READING: "Reading",
+  LISTENING: "Listening",
 };
 
 const skillPracticeHref = (skill: LearningSkill, level: string): string | null => {
   if (skill === "READING") return "/app/learn/reading";
+  if (skill === "LISTENING") return "/app/learn/listening";
   return `/app/practice/session?level=${level}&skill=${skill}&mode=WEAKNESS&count=10`;
 };
 
@@ -74,7 +76,9 @@ export function SkillStatCard({ analytics, level, compact = false }: SkillStatCa
             <Button size="sm" variant="secondary">
               {analytics.skill === "READING"
                 ? "Open reading"
-                : `Practice ${label.toLowerCase()}`}
+                : analytics.skill === "LISTENING"
+                  ? "Open listening"
+                  : `Practice ${label.toLowerCase()}`}
             </Button>
           </Link>
         ) : null}

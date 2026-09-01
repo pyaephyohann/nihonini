@@ -77,6 +77,13 @@ export async function getJlptSkillProgress(
     where: { userId, reading: { jlptLevel: level, published: true } },
     select: { mastery: true },
   });
+  const listeningCount = await prisma.listening.count({
+    where: { jlptLevel: level, published: true },
+  });
+  const listeningProgressRows = await prisma.userListeningProgress.findMany({
+    where: { userId, listening: { jlptLevel: level, published: true } },
+    select: { mastery: true },
+  });
 
   const vocabularyMasterySum = vocabularyProgressRows.reduce(
     (sum, row) =>
@@ -105,12 +112,20 @@ export async function getJlptSkillProgress(
   const reading = readingCount
     ? roundPercent((readingMasterySum / readingCount) * 100)
     : null;
+  const listeningMasterySum = listeningProgressRows.reduce(
+    (sum, row) => sum + row.mastery,
+    0,
+  );
+  const listening = listeningCount
+    ? roundPercent((listeningMasterySum / listeningCount) * 100)
+    : null;
 
   const available = [
     vocabularyCount > 0 ? vocabulary : null,
     grammarCount > 0 ? grammar : null,
     kanjiCount > 0 ? kanji : null,
     readingCount > 0 ? reading : null,
+    listeningCount > 0 ? listening : null,
   ].filter((value): value is number => value !== null);
 
   const overall = available.length
@@ -122,7 +137,7 @@ export async function getJlptSkillProgress(
     grammar,
     kanji,
     reading,
-    listening: null,
+    listening,
     overall,
   };
 }
@@ -241,6 +256,25 @@ export async function getUserJlptCurriculum(userId: string): Promise<JlptCurricu
     readingMasterySums[row.reading.jlptLevel] += row.mastery;
   }
 
+  const listeningCounts = await prisma.listening.groupBy({
+    by: ["jlptLevel"],
+    where: { published: true },
+    _count: { _all: true },
+  });
+  const listeningProgress = await prisma.userListeningProgress.findMany({
+    where: { userId, listening: { published: true } },
+    select: { mastery: true, listening: { select: { jlptLevel: true } } },
+  });
+
+  const listeningTotals = createLevelValueMap(0);
+  const listeningMasterySums = createLevelValueMap(0);
+  for (const row of listeningCounts) {
+    listeningTotals[row.jlptLevel] = row._count._all;
+  }
+  for (const row of listeningProgress) {
+    listeningMasterySums[row.listening.jlptLevel] += row.mastery;
+  }
+
   const levelProgress = levels.map((level) => {
     const code = level.code;
     const vocabulary = vocabularyTotals[code]
@@ -255,8 +289,11 @@ export async function getUserJlptCurriculum(userId: string): Promise<JlptCurricu
     const reading = readingTotals[code]
       ? (readingMasterySums[code] / readingTotals[code]) * 100
       : null;
+    const listening = listeningTotals[code]
+      ? (listeningMasterySums[code] / listeningTotals[code]) * 100
+      : null;
 
-    const available = [vocabulary, grammar, kanji, reading].filter(
+    const available = [vocabulary, grammar, kanji, reading, listening].filter(
       (value): value is number => value !== null,
     );
     const overall = available.length

@@ -164,7 +164,7 @@ export async function getDashboardSnapshot(userId: string): Promise<DashboardSna
       grammar: targetSkillProgress.grammar,
       kanji: targetSkillProgress.kanji,
       reading: targetSkillProgress.reading,
-      listening: null,
+      listening: targetSkillProgress.listening,
     },
     continueLearning: {
       lessonTitle: recommendation?.title ?? null,

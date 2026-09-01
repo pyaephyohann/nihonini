@@ -6,6 +6,7 @@ import { getDueReviewSummary } from "@/server/learning/daily-learning.service";
 import { getUserJlptCurriculum } from "@/server/learning/jlpt.service";
 import { getUserLessonsCatalog } from "@/server/learning/lesson.service";
 import { countPublishedReadingsByLevel } from "@/server/learning/reading.repository";
+import { countPublishedListeningsByLevel } from "@/server/learning/listening.repository";
 import { LessonList } from "@/components/learning/lesson-list";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -22,6 +23,7 @@ export default async function LearnPage() {
   const curriculum = await getUserJlptCurriculum(session.user.id);
   const currentLevel = user?.profile?.japaneseLevel ?? "N5";
   const readingCount = await countPublishedReadingsByLevel(currentLevel);
+  const listeningCount = await countPublishedListeningsByLevel(currentLevel);
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6 lg:px-8">
@@ -82,9 +84,18 @@ export default async function LearnPage() {
                 </Link>
               )}
             </Card>
-            <Card className="p-4 opacity-70">
+            <Card className="p-4">
               <p className="text-sm font-medium text-foreground">Listening</p>
-              <p className="mt-1 text-xs text-muted-foreground">Coming soon</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {listeningCount > 0 ? `${listeningCount} exercises` : "Coming soon"}
+              </p>
+              {listeningCount > 0 && (
+                <Link href="/app/learn/listening" className="mt-3 inline-block">
+                  <Button size="sm" variant="secondary">
+                    Open listening
+                  </Button>
+                </Link>
+              )}
             </Card>
           </div>
         </section>

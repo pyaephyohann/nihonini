@@ -11,6 +11,10 @@ import {
   getReadingSkillMetrics,
   getRecentReadingActivity,
 } from "@/server/learning/reading.service";
+import {
+  getListeningSkillMetrics,
+  getRecentListeningActivity,
+} from "@/server/learning/listening.service";
 import { prisma } from "@/server/db";
 import type {
   LearningAnalytics,
@@ -320,6 +324,7 @@ async function loadUserLearningAnalytics(
   );
   const kanjiAccuracy = await getSkillPracticeAccuracy(userId, "KANJI", currentLevel);
   const readingMetrics = await getReadingSkillMetrics(userId, currentLevel);
+  const listeningMetrics = await getListeningSkillMetrics(userId, currentLevel);
 
   const totalAttempts = await prisma.practiceAttempt.count({ where: { userId } });
   const correctAttempts = await prisma.practiceAttempt.count({
@@ -381,6 +386,7 @@ async function loadUserLearningAnalytics(
     orderBy: { createdAt: "asc" },
   });
   const recentReading = await getRecentReadingActivity(userId, 5);
+  const recentListening = await getRecentListeningActivity(userId, 5);
 
   const trendByDay = new Map<string, { total: number; correct: number }>();
   for (const attempt of trendAttempts) {
@@ -439,6 +445,12 @@ async function loadUserLearningAnalytics(
       href: `/app/learn/reading/${row.slug}`,
       occurredAt: row.occurredAt,
     })),
+    ...recentListening.map((row) => ({
+      type: "LISTENING" as const,
+      label: `Listening: ${row.title} — ${row.correctCount} / ${row.totalCount} (${row.scorePercent}%)`,
+      href: `/app/learn/listening/${row.slug}`,
+      occurredAt: row.occurredAt,
+    })),
   ]
     .sort((a, b) => b.occurredAt.localeCompare(a.occurredAt))
     .slice(0, 8);
@@ -462,8 +474,14 @@ async function loadUserLearningAnalytics(
   const readingSubmissionCount = await prisma.readingSubmission.count({
     where: { userId },
   });
+  const listeningSubmissionCount = await prisma.listeningSubmission.count({
+    where: { userId },
+  });
   const hasActivity =
-    totalAttempts > 0 || completedLessons > 0 || readingSubmissionCount > 0;
+    totalAttempts > 0 ||
+    completedLessons > 0 ||
+    readingSubmissionCount > 0 ||
+    listeningSubmissionCount > 0;
 
   return {
     hasActivity,
@@ -508,9 +526,22 @@ async function loadUserLearningAnalytics(
             hasData: readingMetrics.hasData,
           }
         : null,
-      listening: null,
+      listening: listeningMetrics
+        ? {
+            skill: "LISTENING" as const,
+            masteryPercent: listeningMetrics.masteryPercent,
+            accuracy: listeningMetrics.accuracy,
+            totalItems: listeningMetrics.totalItems,
+            itemsStarted: listeningMetrics.itemsStarted,
+            itemsMastered: listeningMetrics.itemsMastered,
+            itemsInProgress: listeningMetrics.itemsInProgress,
+            dueReviews: 0,
+            hasData: listeningMetrics.hasData,
+          }
+        : null,
     },
     recentReading,
+    recentListening,
     practice: {
       totalAttempts,
       totalQuestions: totalAttempts,
