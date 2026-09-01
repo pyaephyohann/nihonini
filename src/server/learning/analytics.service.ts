@@ -15,6 +15,7 @@ import {
   getListeningSkillMetrics,
   getRecentListeningActivity,
 } from "@/server/learning/listening.service";
+import { getMockExamAssessmentMetrics } from "@/server/learning/mock-exam.service";
 import { prisma } from "@/server/db";
 import type {
   LearningAnalytics,
@@ -387,6 +388,7 @@ async function loadUserLearningAnalytics(
   });
   const recentReading = await getRecentReadingActivity(userId, 5);
   const recentListening = await getRecentListeningActivity(userId, 5);
+  const mockExam = await getMockExamAssessmentMetrics(userId);
 
   const trendByDay = new Map<string, { total: number; correct: number }>();
   for (const attempt of trendAttempts) {
@@ -542,6 +544,7 @@ async function loadUserLearningAnalytics(
     },
     recentReading,
     recentListening,
+    mockExam,
     practice: {
       totalAttempts,
       totalQuestions: totalAttempts,

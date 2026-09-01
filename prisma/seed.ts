@@ -16,6 +16,7 @@ import {
 import { ALL_READINGS, type ReadingSeed } from "./seed-data/readings";
 import { ALL_LISTENINGS, type ListeningSeed } from "./seed-data/listenings";
 import { ensureListeningAudioFile } from "./seed-data/listening-audio";
+import { seedMockExams } from "./seed-data/mock-exams";
 
 config({ path: ".env.local" });
 config({ path: ".env" });
@@ -577,6 +578,8 @@ async function main() {
     console.log(`  ✓ Listening: ${listening.slug}`);
   }
 
+  await seedMockExams(prisma);
+
   const counts = {
     levels: await prisma.jlptLevel.count(),
     lessons: await prisma.lesson.count(),
@@ -588,6 +591,8 @@ async function main() {
     readingQuestions: await prisma.readingQuestion.count(),
     listenings: await prisma.listening.count({ where: { published: true } }),
     listeningQuestions: await prisma.listeningQuestion.count(),
+    mockExams: await prisma.mockExam.count({ where: { published: true } }),
+    mockExamQuestions: await prisma.mockExamQuestion.count(),
   };
 
   console.log("\nSeed complete:");
@@ -601,6 +606,8 @@ async function main() {
   console.log(`  Reading questions: ${counts.readingQuestions}`);
   console.log(`  Published listenings: ${counts.listenings}`);
   console.log(`  Listening questions: ${counts.listeningQuestions}`);
+  console.log(`  Published mock exams: ${counts.mockExams}`);
+  console.log(`  Mock exam questions: ${counts.mockExamQuestions}`);
 }
 
 main()

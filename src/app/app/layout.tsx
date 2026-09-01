@@ -46,6 +46,12 @@ export default async function AppLayout({
               Practice
             </Link>
             <Link
+              href="/app/exams"
+              className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded-sm"
+            >
+              Exams
+            </Link>
+            <Link
               href="/app/progress"
               className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded-sm"
             >

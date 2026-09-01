@@ -220,6 +220,44 @@ export function ProgressAnalyticsView({ analytics }: ProgressAnalyticsViewProps)
         </div>
       </section>
 
+      {analytics.mockExam && (
+        <section aria-labelledby="assessment-heading">
+          <h2 id="assessment-heading" className="text-xl font-semibold text-foreground">
+            Mock exam performance
+          </h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Assessment scores are separate from learning mastery.
+          </p>
+          <div className="mt-4 grid gap-4 sm:grid-cols-3">
+            <Card>
+              <p className="text-sm text-muted-foreground">Latest mock exam</p>
+              <p className="mt-1 text-2xl font-bold text-foreground">
+                {analytics.mockExam.latestScore}%
+              </p>
+            </Card>
+            <Card>
+              <p className="text-sm text-muted-foreground">Best mock exam</p>
+              <p className="mt-1 text-2xl font-bold text-foreground">
+                {analytics.mockExam.bestScore}%
+              </p>
+            </Card>
+            <Card>
+              <p className="text-sm text-muted-foreground">Average mock exam</p>
+              <p className="mt-1 text-2xl font-bold text-foreground">
+                {analytics.mockExam.averageScore}%
+              </p>
+            </Card>
+          </div>
+          <div className="mt-4">
+            <Link href="/app/exams">
+              <Button variant="secondary" size="sm">
+                View exam history
+              </Button>
+            </Link>
+          </div>
+        </section>
+      )}
+
       <section aria-labelledby="insights-heading" className="grid gap-4 lg:grid-cols-2">
         <Card>
           <h2 id="insights-heading" className="text-lg font-semibold text-foreground">

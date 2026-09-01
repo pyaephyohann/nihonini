@@ -3,6 +3,7 @@ import { requireAuth } from "@/server/auth/require-auth";
 import { findSafeUserById } from "@/server/users/user.repository";
 import { getDashboardSnapshot } from "@/server/learning/daily-learning.service";
 import { getUserLearningAnalytics } from "@/server/learning/analytics.service";
+import { getLatestMockExamSummary } from "@/server/learning/mock-exam.service";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { LearningPreferencesForm } from "@/components/learning/learning-preferences-form";
@@ -13,6 +14,7 @@ export default async function AppDashboardPage() {
   const user = await findSafeUserById(session.user.id);
   const dashboard = await getDashboardSnapshot(session.user.id);
   const analytics = await getUserLearningAnalytics(session.user.id);
+  const latestMockExam = await getLatestMockExamSummary(session.user.id);
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6 lg:px-8">
@@ -133,6 +135,22 @@ export default async function AppDashboardPage() {
           <Card className="sm:col-span-2 lg:col-span-3">
             <LearningOverview analytics={analytics} />
           </Card>
+          {latestMockExam && (
+            <Card className="sm:col-span-2 lg:col-span-2">
+              <h2 className="text-sm font-medium text-muted-foreground">Latest mock exam</h2>
+              <p className="mt-1 text-xl font-bold text-foreground">{latestMockExam.examTitle}</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {latestMockExam.jlptLevel} · {latestMockExam.scorePercent}% mock exam score
+              </p>
+              <div className="mt-3">
+                <Link href={`/app/exams/result/${latestMockExam.sessionId}`}>
+                  <Button size="sm" variant="secondary">
+                    View result
+                  </Button>
+                </Link>
+              </div>
+            </Card>
+          )}
           <Card className="sm:col-span-2 lg:col-span-3">
             <h2 className="text-sm font-medium text-muted-foreground">
               Learning preferences

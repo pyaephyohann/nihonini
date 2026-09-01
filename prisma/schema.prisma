@@ -55,6 +55,23 @@ enum LessonProgressStatus {
   COMPLETED
 }
 
+enum MockExamSkill {
+  VOCABULARY
+  GRAMMAR
+  READING
+  LISTENING
+}
+
+enum MockExamQuestionType {
+  SINGLE_CHOICE
+}
+
+enum MockExamSessionStatus {
+  IN_PROGRESS
+  SUBMITTED
+  EXPIRED
+}
+
 model User {
   id            String    @id @default(cuid())
   name          String?
@@ -78,6 +95,7 @@ model User {
   practiceAttempts     PracticeAttempt[]
   readingSubmissions   ReadingSubmission[]
   listeningSubmissions ListeningSubmission[]
+  mockExamSessions     UserMockExamSession[]
 
   @@map("users")
 }
@@ -146,7 +164,8 @@ model JlptLevel {
   createdAt   DateTime      @default(now()) @map("created_at")
   updatedAt   DateTime      @updatedAt @map("updated_at")
 
-  lessons Lesson[]
+  lessons   Lesson[]
+  mockExams MockExam[]
 
   @@map("jlpt_levels")
 }
@@ -316,6 +335,7 @@ model Exercise {
   grammarTargets    ExerciseGrammar[]
   kanjiTargets      ExerciseKanji[]
   attempts          PracticeAttempt[]
+  mockExamQuestions MockExamQuestion[]
 
   @@unique([lessonId, order])
   @@index([lessonId])
@@ -499,7 +519,8 @@ model Reading {
 
   questions   ReadingQuestion[]
   progresses  UserReadingProgress[]
-  submissions ReadingSubmission[]
+  submissions      ReadingSubmission[]
+  mockExamSections MockExamSection[]
 
   @@unique([jlptLevel, order])
   @@index([jlptLevel, published])
@@ -515,7 +536,8 @@ model ReadingQuestion {
 
   reading  Reading                 @relation(fields: [readingId], references: [id], onDelete: Cascade)
   options  ReadingQuestionOption[]
-  attempts ReadingQuestionAttempt[]
+  attempts          ReadingQuestionAttempt[]
+  mockExamQuestions MockExamQuestion[]
 
   @@unique([readingId, order])
   @@index([readingId])
@@ -609,7 +631,8 @@ model Listening {
 
   questions   ListeningQuestion[]
   progresses  UserListeningProgress[]
-  submissions ListeningSubmission[]
+  submissions      ListeningSubmission[]
+  mockExamSections MockExamSection[]
 
   @@unique([jlptLevel, order])
   @@index([jlptLevel, published])
@@ -625,7 +648,8 @@ model ListeningQuestion {
 
   listening Listening                 @relation(fields: [listeningId], references: [id], onDelete: Cascade)
   options   ListeningQuestionOption[]
-  attempts  ListeningQuestionAttempt[]
+  attempts          ListeningQuestionAttempt[]
+  mockExamQuestions MockExamQuestion[]
 
   @@unique([listeningId, order])
   @@index([listeningId])
@@ -698,4 +722,160 @@ model ListeningQuestionAttempt {
 
   @@unique([submissionId, questionId])
   @@map("listening_question_attempts")
+}
+
+model MockExam {
+  id              String   @id @default(cuid())
+  title           String
+  slug            String   @unique
+  jlptLevelId     String   @map("jlpt_level_id")
+  description     String?  @db.Text
+  published       Boolean  @default(false)
+  durationSeconds Int      @map("duration_seconds")
+  questionCount   Int      @default(0) @map("question_count")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  jlptLevel JlptLevel             @relation(fields: [jlptLevelId], references: [id], onDelete: Cascade)
+  sections  MockExamSection[]
+  sessions  UserMockExamSession[]
+
+  @@index([jlptLevelId, published])
+  @@map("mock_exams")
+}
+
+model MockExamSection {
+  id              String        @id @default(cuid())
+  mockExamId      String        @map("mock_exam_id")
+  title           String
+  skill           MockExamSkill
+  order           Int           @map("sort_order")
+  durationSeconds Int?          @map("duration_seconds")
+  readingId       String?       @map("reading_id")
+  listeningId     String?       @map("listening_id")
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+
+  mockExam       MockExam                    @relation(fields: [mockExamId], references: [id], onDelete: Cascade)
+  reading        Reading?                    @relation(fields: [readingId], references: [id], onDelete: SetNull)
+  listening      Listening?                  @relation(fields: [listeningId], references: [id], onDelete: SetNull)
+  questions      MockExamQuestion[]
+  sectionResults UserMockExamSectionResult[]
+
+  @@unique([mockExamId, order])
+  @@index([mockExamId, order])
+  @@map("mock_exam_sections")
+}
+
+model MockExamQuestion {
+  id                  String               @id @default(cuid())
+  sectionId           String               @map("section_id")
+  order               Int                  @map("sort_order")
+  questionText        String               @map("question_text") @db.Text
+  questionType        MockExamQuestionType @default(SINGLE_CHOICE) @map("question_type")
+  explanation         String?              @db.Text
+  exerciseId          String?              @map("exercise_id")
+  readingQuestionId   String?              @map("reading_question_id")
+  listeningQuestionId String?              @map("listening_question_id")
+  createdAt           DateTime             @default(now()) @map("created_at")
+  updatedAt           DateTime             @updatedAt @map("updated_at")
+
+  section           MockExamSection               @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  exercise          Exercise?                     @relation(fields: [exerciseId], references: [id], onDelete: SetNull)
+  readingQuestion   ReadingQuestion?              @relation(fields: [readingQuestionId], references: [id], onDelete: SetNull)
+  listeningQuestion ListeningQuestion?            @relation(fields: [listeningQuestionId], references: [id], onDelete: SetNull)
+  options           MockExamQuestionOption[]
+  sessionQuestions  UserMockExamSessionQuestion[]
+  answers           UserMockExamAnswer[]
+
+  @@unique([sectionId, order])
+  @@index([sectionId, order])
+  @@map("mock_exam_questions")
+}
+
+model MockExamQuestionOption {
+  id         String  @id @default(cuid())
+  questionId String  @map("question_id")
+  text       String
+  isCorrect  Boolean @default(false) @map("is_correct")
+  order      Int     @map("sort_order")
+
+  question MockExamQuestion     @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  answers  UserMockExamAnswer[]
+
+  @@unique([questionId, order])
+  @@map("mock_exam_question_options")
+}
+
+model UserMockExamSession {
+  id           String                @id @default(cuid())
+  userId       String                @map("user_id")
+  mockExamId   String                @map("mock_exam_id")
+  status       MockExamSessionStatus @default(IN_PROGRESS)
+  startedAt    DateTime              @default(now()) @map("started_at")
+  submittedAt  DateTime?             @map("submitted_at")
+  expiresAt    DateTime              @map("expires_at")
+  scorePercent Int?                  @map("score_percent")
+  correctCount Int?                  @map("correct_count")
+  totalCount   Int?                  @map("total_count")
+  createdAt    DateTime              @default(now()) @map("created_at")
+  updatedAt    DateTime              @updatedAt @map("updated_at")
+
+  user             User                          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mockExam         MockExam                      @relation(fields: [mockExamId], references: [id], onDelete: Cascade)
+  sessionQuestions UserMockExamSessionQuestion[]
+  answers          UserMockExamAnswer[]
+  sectionResults   UserMockExamSectionResult[]
+
+  @@index([userId, status])
+  @@index([userId, createdAt])
+  @@index([mockExamId])
+  @@index([userId, mockExamId, status])
+  @@map("user_mock_exam_sessions")
+}
+
+model UserMockExamSessionQuestion {
+  id                 String @id @default(cuid())
+  sessionId          String @map("session_id")
+  mockExamQuestionId String @map("mock_exam_question_id")
+  sectionId          String @map("section_id")
+  order              Int    @map("sort_order")
+
+  session          UserMockExamSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  mockExamQuestion MockExamQuestion    @relation(fields: [mockExamQuestionId], references: [id], onDelete: Cascade)
+
+  @@unique([sessionId, mockExamQuestionId])
+  @@index([sessionId, order])
+  @@map("user_mock_exam_session_questions")
+}
+
+model UserMockExamAnswer {
+  id                 String   @id @default(cuid())
+  sessionId          String   @map("session_id")
+  mockExamQuestionId String   @map("mock_exam_question_id")
+  selectedOptionId   String   @map("selected_option_id")
+  answeredAt         DateTime @default(now()) @map("answered_at")
+
+  session          UserMockExamSession    @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  mockExamQuestion MockExamQuestion       @relation(fields: [mockExamQuestionId], references: [id], onDelete: Cascade)
+  selectedOption   MockExamQuestionOption @relation(fields: [selectedOptionId], references: [id], onDelete: Cascade)
+
+  @@unique([sessionId, mockExamQuestionId])
+  @@index([sessionId])
+  @@map("user_mock_exam_answers")
+}
+
+model UserMockExamSectionResult {
+  id           String @id @default(cuid())
+  sessionId    String @map("session_id")
+  sectionId    String @map("section_id")
+  correctCount Int    @map("correct_count")
+  totalCount   Int    @map("total_count")
+  scorePercent Int    @map("score_percent")
+
+  session UserMockExamSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  section MockExamSection     @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+
+  @@unique([sessionId, sectionId])
+  @@map("user_mock_exam_section_results")
 }

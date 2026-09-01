@@ -278,6 +278,7 @@ export type LearningAnalytics = {
   }[];
   recentReading: RecentReadingActivity[];
   recentListening: RecentListeningActivity[];
+  mockExam: MockExamAssessmentMetrics | null;
 };
 
 export type ReadingQuestionOptionDTO = {
@@ -440,4 +441,146 @@ export type RecentListeningActivity = {
   totalCount: number;
   scorePercent: number;
   occurredAt: string;
+};
+
+export type MockExamSkillType = "VOCABULARY" | "GRAMMAR" | "READING" | "LISTENING";
+
+export type MockExamListItem = {
+  id: string;
+  title: string;
+  slug: string;
+  description: string | null;
+  jlptLevel: JapaneseLevel;
+  durationSeconds: number;
+  durationLabel: string;
+  questionCount: number;
+  activeSessionId: string | null;
+};
+
+export type MockExamCatalogLevel = {
+  level: JapaneseLevel;
+  exams: MockExamListItem[];
+};
+
+export type MockExamSectionSummary = {
+  id: string;
+  title: string;
+  skill: MockExamSkillType;
+  order: number;
+  questionCount: number;
+  durationSeconds: number | null;
+};
+
+export type MockExamDetail = {
+  id: string;
+  title: string;
+  slug: string;
+  description: string | null;
+  jlptLevel: JapaneseLevel;
+  jlptLevelName: string;
+  durationSeconds: number;
+  durationLabel: string;
+  questionCount: number;
+  activeSessionId: string | null;
+  sections: MockExamSectionSummary[];
+};
+
+export type MockExamSessionQuestion = {
+  id: string;
+  globalIndex: number;
+  sectionId: string;
+  questionText: string;
+  questionType: "SINGLE_CHOICE";
+  order: number;
+  options: { id: string; text: string; order: number }[];
+  selectedOptionId: string | null;
+};
+
+export type MockExamSessionSection = {
+  id: string;
+  title: string;
+  skill: MockExamSkillType;
+  order: number;
+  readingPassage: string | null;
+  readingTitle: string | null;
+  listeningAudioUrl: string | null;
+  listeningTitle: string | null;
+  listeningDurationSeconds: number | null;
+  questionIds: string[];
+};
+
+export type MockExamSessionState = {
+  sessionId: string;
+  status: "IN_PROGRESS";
+  startedAt: string;
+  expiresAt: string;
+  serverNow: string;
+  exam: {
+    id: string;
+    title: string;
+    slug: string;
+    jlptLevel: JapaneseLevel;
+    durationSeconds: number;
+  };
+  sections: MockExamSessionSection[];
+  questions: MockExamSessionQuestion[];
+  answeredCount: number;
+  totalCount: number;
+};
+
+export type MockExamGradedAnswer = {
+  questionId: string;
+  sectionId: string;
+  order: number;
+  questionText: string;
+  selectedOptionId: string | null;
+  selectedOptionText: string | null;
+  correctOptionId: string;
+  correctOptionText: string;
+  isCorrect: boolean;
+  explanation: string | null;
+};
+
+export type MockExamSectionPerformance = {
+  sectionId: string;
+  title: string;
+  skill: MockExamSkillType;
+  order: number;
+  correctCount: number;
+  totalCount: number;
+  scorePercent: number;
+};
+
+export type MockExamResult = {
+  sessionId: string;
+  status: "SUBMITTED" | "EXPIRED";
+  examTitle: string;
+  examSlug: string;
+  jlptLevel: JapaneseLevel;
+  submittedAt: string;
+  scorePercent: number;
+  correctCount: number;
+  totalCount: number;
+  scoreLabel: string;
+  sectionPerformance: MockExamSectionPerformance[];
+  answers: MockExamGradedAnswer[];
+};
+
+export type MockExamHistoryItem = {
+  sessionId: string;
+  examTitle: string;
+  examSlug: string;
+  jlptLevel: JapaneseLevel;
+  status: "SUBMITTED" | "EXPIRED";
+  scorePercent: number;
+  correctCount: number;
+  totalCount: number;
+  submittedAt: string;
+};
+
+export type MockExamAssessmentMetrics = {
+  attemptCount: number;
+  latestScore: number;
+  bestScore: number;
+  averageScore: number;
 };
