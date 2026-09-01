@@ -62,7 +62,7 @@ export function LearningOverview({ analytics }: LearningOverviewProps) {
         </p>
       </Card>
 
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <SkillStatCard
           analytics={analytics.skills.vocabulary}
           level={analytics.jlpt.currentLevel}
@@ -78,6 +78,13 @@ export function LearningOverview({ analytics }: LearningOverviewProps) {
           level={analytics.jlpt.currentLevel}
           compact
         />
+        {analytics.skills.reading && (
+          <SkillStatCard
+            analytics={analytics.skills.reading}
+            level={analytics.jlpt.currentLevel}
+            compact
+          />
+        )}
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">

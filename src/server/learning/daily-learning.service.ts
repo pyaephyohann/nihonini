@@ -163,7 +163,7 @@ export async function getDashboardSnapshot(userId: string): Promise<DashboardSna
       vocabulary: targetSkillProgress.vocabulary,
       grammar: targetSkillProgress.grammar,
       kanji: targetSkillProgress.kanji,
-      reading: null,
+      reading: targetSkillProgress.reading,
       listening: null,
     },
     continueLearning: {

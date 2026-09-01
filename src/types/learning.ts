@@ -130,7 +130,7 @@ export type DashboardSnapshot = {
     vocabulary: number;
     grammar: number;
     kanji: number;
-    reading: null;
+    reading: number | null;
     listening: null;
   };
   continueLearning: {
@@ -144,7 +144,7 @@ export type JlptSkillProgress = {
   vocabulary: number;
   grammar: number;
   kanji: number;
-  reading: null;
+  reading: number | null;
   listening: null;
   overall: number;
 };
@@ -170,6 +170,7 @@ export type JlptCurriculum = {
 };
 
 export type PracticeSkill = "VOCABULARY" | "GRAMMAR" | "KANJI";
+export type LearningSkill = PracticeSkill | "READING";
 export type PracticeMode = "REVIEW" | "WEAKNESS" | "LEVEL";
 
 export type PracticeSafeExercise = ClientExercise & {
@@ -202,7 +203,7 @@ export type SkillInsight = {
 };
 
 export type SkillAnalytics = {
-  skill: PracticeSkill;
+  skill: LearningSkill;
   masteryPercent: number;
   accuracy: number | null;
   totalItems: number;
@@ -225,7 +226,7 @@ export type LearningAnalytics = {
     vocabulary: SkillAnalytics;
     grammar: SkillAnalytics;
     kanji: SkillAnalytics;
-    reading: null;
+    reading: SkillAnalytics | null;
     listening: null;
   };
   practice: {
@@ -270,9 +271,90 @@ export type LearningAnalytics = {
     accuracy: number;
   }[];
   recentActivity: {
-    type: "LESSON_COMPLETED" | "PRACTICE";
+    type: "LESSON_COMPLETED" | "PRACTICE" | "READING";
     label: string;
     href: string;
     occurredAt: string;
   }[];
+  recentReading: RecentReadingActivity[];
+};
+
+export type ReadingQuestionOptionDTO = {
+  id: string;
+  text: string;
+  order: number;
+};
+
+export type ReadingQuestionDTO = {
+  id: string;
+  question: string;
+  order: number;
+  options: ReadingQuestionOptionDTO[];
+};
+
+export type ReadingSummary = {
+  id: string;
+  title: string;
+  slug: string;
+  subtitle: string | null;
+  description: string | null;
+  jlptLevel: JapaneseLevel;
+  difficulty: number;
+  difficultyLabel: string;
+  estimatedMinutes: number;
+  order: number;
+  attemptCount: number;
+  completed: boolean;
+  bestScore: number;
+  lastScore: number;
+  masteryPercent: number;
+};
+
+export type ReadingDetail = ReadingSummary & {
+  passage: string;
+  questions: ReadingQuestionDTO[];
+};
+
+export type ReadingCatalogLevel = {
+  level: JapaneseLevel;
+  readings: ReadingListItem[];
+};
+
+export type ReadingListItem = ReadingSummary;
+
+export type ReadingGradedAnswer = {
+  questionId: string;
+  question: string;
+  selectedOptionId: string;
+  selectedOptionText: string;
+  correctOptionId: string;
+  correctOptionText: string;
+  isCorrect: boolean;
+  explanation: string | null;
+};
+
+export type ReadingSubmissionResult = {
+  submissionId: string;
+  readingId: string;
+  readingTitle: string;
+  readingSlug: string;
+  jlptLevel: JapaneseLevel;
+  correctCount: number;
+  totalCount: number;
+  incorrectCount: number;
+  scorePercent: number;
+  accuracy: number;
+  masteryPercent: number;
+  completed: boolean;
+  answers: ReadingGradedAnswer[];
+};
+
+export type RecentReadingActivity = {
+  title: string;
+  slug: string;
+  jlptLevel: JapaneseLevel;
+  correctCount: number;
+  totalCount: number;
+  scorePercent: number;
+  occurredAt: string;
 };

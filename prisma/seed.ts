@@ -13,6 +13,7 @@ import {
   type LessonSeed,
   type VocabSeed,
 } from "./seed-data/n5-content";
+import { ALL_READINGS, type ReadingSeed } from "./seed-data/readings";
 
 config({ path: ".env.local" });
 config({ path: ".env" });
@@ -372,6 +373,77 @@ async function seedExercisesForLesson(
   }
 }
 
+async function seedReading(reading: ReadingSeed) {
+  const record = await prisma.reading.upsert({
+    where: { slug: reading.slug },
+    update: {
+      title: reading.title,
+      subtitle: reading.subtitle ?? null,
+      description: reading.description ?? null,
+      passage: reading.passage,
+      jlptLevel: reading.jlptLevel,
+      difficulty: reading.difficulty,
+      estimatedMinutes: reading.estimatedMinutes,
+      order: reading.order,
+      published: reading.published,
+    },
+    create: {
+      title: reading.title,
+      slug: reading.slug,
+      subtitle: reading.subtitle ?? null,
+      description: reading.description ?? null,
+      passage: reading.passage,
+      jlptLevel: reading.jlptLevel,
+      difficulty: reading.difficulty,
+      estimatedMinutes: reading.estimatedMinutes,
+      order: reading.order,
+      published: reading.published,
+    },
+  });
+
+  for (const [questionIndex, question] of reading.questions.entries()) {
+    const questionRecord = await prisma.readingQuestion.upsert({
+      where: {
+        readingId_order: {
+          readingId: record.id,
+          order: questionIndex + 1,
+        },
+      },
+      update: {
+        question: question.question,
+        explanation: question.explanation ?? null,
+      },
+      create: {
+        readingId: record.id,
+        question: question.question,
+        explanation: question.explanation ?? null,
+        order: questionIndex + 1,
+      },
+    });
+
+    for (const [optionIndex, option] of question.options.entries()) {
+      await prisma.readingQuestionOption.upsert({
+        where: {
+          questionId_order: {
+            questionId: questionRecord.id,
+            order: optionIndex + 1,
+          },
+        },
+        update: {
+          text: option.text,
+          isCorrect: option.isCorrect,
+        },
+        create: {
+          questionId: questionRecord.id,
+          text: option.text,
+          isCorrect: option.isCorrect,
+          order: optionIndex + 1,
+        },
+      });
+    }
+  }
+}
+
 async function main() {
   console.log("Seeding Nihonini learning content...");
 
@@ -414,6 +486,12 @@ async function main() {
     }
   }
 
+  console.log("\nSeeding readings...");
+  for (const reading of ALL_READINGS) {
+    await seedReading(reading);
+    console.log(`  ✓ Reading: ${reading.slug}`);
+  }
+
   const counts = {
     levels: await prisma.jlptLevel.count(),
     lessons: await prisma.lesson.count(),
@@ -421,6 +499,8 @@ async function main() {
     kanji: await prisma.kanji.count(),
     grammar: await prisma.grammar.count(),
     exercises: await prisma.exercise.count(),
+    readings: await prisma.reading.count({ where: { published: true } }),
+    readingQuestions: await prisma.readingQuestion.count(),
   };
 
   console.log("\nSeed complete:");
@@ -430,6 +510,8 @@ async function main() {
   console.log(`  Kanji: ${counts.kanji}`);
   console.log(`  Grammar: ${counts.grammar}`);
   console.log(`  Exercises: ${counts.exercises}`);
+  console.log(`  Published readings: ${counts.readings}`);
+  console.log(`  Reading questions: ${counts.readingQuestions}`);
 }
 
 main()

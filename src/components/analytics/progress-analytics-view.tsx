@@ -76,7 +76,7 @@ export function ProgressAnalyticsView({ analytics }: ProgressAnalyticsViewProps)
         <p className="mt-1 text-sm text-muted-foreground">
           {analytics.jlpt.currentLevel} · average mastery across available content
         </p>
-        <div className="mt-4 grid gap-4 lg:grid-cols-3">
+        <div className="mt-4 grid gap-4 lg:grid-cols-2 xl:grid-cols-4">
           <SkillStatCard
             analytics={analytics.skills.vocabulary}
             level={analytics.jlpt.currentLevel}
@@ -89,9 +89,22 @@ export function ProgressAnalyticsView({ analytics }: ProgressAnalyticsViewProps)
             analytics={analytics.skills.kanji}
             level={analytics.jlpt.currentLevel}
           />
+          {analytics.skills.reading ? (
+            <SkillStatCard
+              analytics={analytics.skills.reading}
+              level={analytics.jlpt.currentLevel}
+            />
+          ) : (
+            <Card className="p-6">
+              <h3 className="text-sm font-semibold text-foreground">Reading</h3>
+              <p className="mt-2 text-sm text-muted-foreground">
+                No published reading content for your level yet.
+              </p>
+            </Card>
+          )}
         </div>
         <p className="mt-3 text-xs text-muted-foreground">
-          Reading and listening analytics will appear when those modules are implemented.
+          Listening analytics will appear when that module is implemented.
         </p>
       </section>
 
@@ -279,6 +292,30 @@ export function ProgressAnalyticsView({ analytics }: ProgressAnalyticsViewProps)
                       <span className="font-medium text-foreground">
                         {day.correctAnswers} / {day.totalQuestions} · {day.accuracy}%
                       </span>
+                    </li>
+                  ))}
+                </ul>
+              </Card>
+            )}
+
+            {analytics.recentReading.length > 0 && (
+              <Card>
+                <h3 className="text-sm font-medium text-muted-foreground">Recent reading</h3>
+                <ul className="mt-3 space-y-2">
+                  {analytics.recentReading.map((item) => (
+                    <li key={`${item.slug}-${item.occurredAt}`}>
+                      <Link
+                        href={`/app/learn/reading/${item.slug}`}
+                        className="flex items-center justify-between gap-3 rounded-lg border border-border px-3 py-2 text-sm hover:bg-muted"
+                      >
+                        <span className="text-foreground">
+                          {item.title}
+                          <span className="ml-2 text-muted-foreground">{item.jlptLevel}</span>
+                        </span>
+                        <span className="font-medium text-foreground">
+                          {item.correctCount} / {item.totalCount} · {item.scorePercent}%
+                        </span>
+                      </Link>
                     </li>
                   ))}
                 </ul>

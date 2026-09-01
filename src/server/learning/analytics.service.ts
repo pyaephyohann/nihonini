@@ -7,6 +7,10 @@ import {
   getJlptPath,
   getUserJlptCurriculum,
 } from "@/server/learning/jlpt.service";
+import {
+  getReadingSkillMetrics,
+  getRecentReadingActivity,
+} from "@/server/learning/reading.service";
 import { prisma } from "@/server/db";
 import type {
   LearningAnalytics,
@@ -315,6 +319,7 @@ async function loadUserLearningAnalytics(
     currentLevel,
   );
   const kanjiAccuracy = await getSkillPracticeAccuracy(userId, "KANJI", currentLevel);
+  const readingMetrics = await getReadingSkillMetrics(userId, currentLevel);
 
   const totalAttempts = await prisma.practiceAttempt.count({ where: { userId } });
   const correctAttempts = await prisma.practiceAttempt.count({
@@ -375,6 +380,7 @@ async function loadUserLearningAnalytics(
     select: { isCorrect: true, createdAt: true },
     orderBy: { createdAt: "asc" },
   });
+  const recentReading = await getRecentReadingActivity(userId, 5);
 
   const trendByDay = new Map<string, { total: number; correct: number }>();
   for (const attempt of trendAttempts) {
@@ -427,6 +433,12 @@ async function loadUserLearningAnalytics(
       href: "/app/practice",
       occurredAt: `${row.day}T12:00:00.000Z`,
     })),
+    ...recentReading.map((row) => ({
+      type: "READING" as const,
+      label: `Reading: ${row.title} — ${row.correctCount} / ${row.totalCount} (${row.scorePercent}%)`,
+      href: `/app/learn/reading/${row.slug}`,
+      occurredAt: row.occurredAt,
+    })),
   ]
     .sort((a, b) => b.occurredAt.localeCompare(a.occurredAt))
     .slice(0, 8);
@@ -447,7 +459,11 @@ async function loadUserLearningAnalytics(
     .sort((a, b) => b.masteryPercent - a.masteryPercent)
     .slice(0, 2);
 
-  const hasActivity = totalAttempts > 0 || completedLessons > 0;
+  const readingSubmissionCount = await prisma.readingSubmission.count({
+    where: { userId },
+  });
+  const hasActivity =
+    totalAttempts > 0 || completedLessons > 0 || readingSubmissionCount > 0;
 
   return {
     hasActivity,
@@ -479,9 +495,22 @@ async function loadUserLearningAnalytics(
         masteryPercent: currentSkillProgress.kanji,
         accuracy: kanjiAccuracy,
       }),
-      reading: null,
+      reading: readingMetrics
+        ? {
+            skill: "READING" as const,
+            masteryPercent: readingMetrics.masteryPercent,
+            accuracy: readingMetrics.accuracy,
+            totalItems: readingMetrics.totalItems,
+            itemsStarted: readingMetrics.itemsStarted,
+            itemsMastered: readingMetrics.itemsMastered,
+            itemsInProgress: readingMetrics.itemsInProgress,
+            dueReviews: 0,
+            hasData: readingMetrics.hasData,
+          }
+        : null,
       listening: null,
     },
+    recentReading,
     practice: {
       totalAttempts,
       totalQuestions: totalAttempts,

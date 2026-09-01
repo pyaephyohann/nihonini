@@ -2,12 +2,18 @@ import Link from "next/link";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ProgressBar } from "@/components/analytics/progress-bar";
-import type { PracticeSkill, SkillAnalytics } from "@/types/learning";
+import type { LearningSkill, SkillAnalytics } from "@/types/learning";
 
-const skillLabels: Record<PracticeSkill, string> = {
+const skillLabels: Record<LearningSkill, string> = {
   VOCABULARY: "Vocabulary",
   GRAMMAR: "Grammar",
   KANJI: "Kanji",
+  READING: "Reading",
+};
+
+const skillPracticeHref = (skill: LearningSkill, level: string): string | null => {
+  if (skill === "READING") return "/app/learn/reading";
+  return `/app/practice/session?level=${level}&skill=${skill}&mode=WEAKNESS&count=10`;
 };
 
 type SkillStatCardProps = {
@@ -63,13 +69,15 @@ export function SkillStatCard({ analytics, level, compact = false }: SkillStatCa
       )}
 
       <div className="mt-4">
-        <Link
-          href={`/app/practice/session?level=${level}&skill=${analytics.skill}&mode=WEAKNESS&count=10`}
-        >
-          <Button size="sm" variant="secondary">
-            Practice {label.toLowerCase()}
-          </Button>
-        </Link>
+        {skillPracticeHref(analytics.skill, level) ? (
+          <Link href={skillPracticeHref(analytics.skill, level)!}>
+            <Button size="sm" variant="secondary">
+              {analytics.skill === "READING"
+                ? "Open reading"
+                : `Practice ${label.toLowerCase()}`}
+            </Button>
+          </Link>
+        ) : null}
       </div>
     </Card>
   );

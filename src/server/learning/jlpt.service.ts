@@ -58,6 +58,9 @@ export async function getJlptSkillProgress(
   const kanjiCount = await prisma.kanji.count({
     where: { jlptLevel: level },
   });
+  const readingCount = await prisma.reading.count({
+    where: { jlptLevel: level, published: true },
+  });
   const vocabularyProgressRows = await prisma.userVocabularyProgress.findMany({
     where: { userId },
     select: { mastery: true, vocabulary: { select: { jlptLevel: true } } },
@@ -69,6 +72,10 @@ export async function getJlptSkillProgress(
   const kanjiProgressRows = await prisma.userKanjiProgress.findMany({
     where: { userId },
     select: { mastery: true, kanji: { select: { jlptLevel: true } } },
+  });
+  const readingProgressRows = await prisma.userReadingProgress.findMany({
+    where: { userId, reading: { jlptLevel: level, published: true } },
+    select: { mastery: true },
   });
 
   const vocabularyMasterySum = vocabularyProgressRows.reduce(
@@ -94,11 +101,16 @@ export async function getJlptSkillProgress(
   const kanji = kanjiCount
     ? roundPercent((kanjiMasterySum / kanjiCount) * 100)
     : 0;
+  const readingMasterySum = readingProgressRows.reduce((sum, row) => sum + row.mastery, 0);
+  const reading = readingCount
+    ? roundPercent((readingMasterySum / readingCount) * 100)
+    : null;
 
   const available = [
     vocabularyCount > 0 ? vocabulary : null,
     grammarCount > 0 ? grammar : null,
     kanjiCount > 0 ? kanji : null,
+    readingCount > 0 ? reading : null,
   ].filter((value): value is number => value !== null);
 
   const overall = available.length
@@ -109,7 +121,7 @@ export async function getJlptSkillProgress(
     vocabulary,
     grammar,
     kanji,
-    reading: null,
+    reading,
     listening: null,
     overall,
   };
@@ -210,6 +222,25 @@ export async function getUserJlptCurriculum(userId: string): Promise<JlptCurricu
     kanjiMasterySums[row.kanji.jlptLevel] += row.mastery;
   }
 
+  const readingCounts = await prisma.reading.groupBy({
+    by: ["jlptLevel"],
+    where: { published: true },
+    _count: { _all: true },
+  });
+  const readingProgress = await prisma.userReadingProgress.findMany({
+    where: { userId, reading: { published: true } },
+    select: { mastery: true, reading: { select: { jlptLevel: true } } },
+  });
+
+  const readingTotals = createLevelValueMap(0);
+  const readingMasterySums = createLevelValueMap(0);
+  for (const row of readingCounts) {
+    readingTotals[row.jlptLevel] = row._count._all;
+  }
+  for (const row of readingProgress) {
+    readingMasterySums[row.reading.jlptLevel] += row.mastery;
+  }
+
   const levelProgress = levels.map((level) => {
     const code = level.code;
     const vocabulary = vocabularyTotals[code]
@@ -221,8 +252,11 @@ export async function getUserJlptCurriculum(userId: string): Promise<JlptCurricu
     const kanji = kanjiTotals[code]
       ? (kanjiMasterySums[code] / kanjiTotals[code]) * 100
       : null;
+    const reading = readingTotals[code]
+      ? (readingMasterySums[code] / readingTotals[code]) * 100
+      : null;
 
-    const available = [vocabulary, grammar, kanji].filter(
+    const available = [vocabulary, grammar, kanji, reading].filter(
       (value): value is number => value !== null,
     );
     const overall = available.length

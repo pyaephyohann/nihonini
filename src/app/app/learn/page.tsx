@@ -1,11 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { requireAuth } from "@/server/auth/require-auth";
+import { findSafeUserById } from "@/server/users/user.repository";
 import { getDueReviewSummary } from "@/server/learning/daily-learning.service";
 import { getUserJlptCurriculum } from "@/server/learning/jlpt.service";
 import { getUserLessonsCatalog } from "@/server/learning/lesson.service";
+import { countPublishedReadingsByLevel } from "@/server/learning/reading.repository";
 import { LessonList } from "@/components/learning/lesson-list";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 
 export const metadata: Metadata = {
   title: "Learn",
@@ -13,11 +16,12 @@ export const metadata: Metadata = {
 
 export default async function LearnPage() {
   const session = await requireAuth();
-  const [levels, dueReviews, curriculum] = await Promise.all([
-    getUserLessonsCatalog(session.user.id),
-    getDueReviewSummary(session.user.id),
-    getUserJlptCurriculum(session.user.id),
-  ]);
+  const user = await findSafeUserById(session.user.id);
+  const levels = await getUserLessonsCatalog(session.user.id);
+  const dueReviews = await getDueReviewSummary(session.user.id);
+  const curriculum = await getUserJlptCurriculum(session.user.id);
+  const currentLevel = user?.profile?.japaneseLevel ?? "N5";
+  const readingCount = await countPublishedReadingsByLevel(currentLevel);
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6 lg:px-8">
@@ -50,6 +54,41 @@ export default async function LearnPage() {
       </div>
 
       <div className="mt-10">
+        <section className="mb-8 rounded-xl border border-border bg-card p-5 shadow-sm">
+          <h2 className="text-lg font-semibold text-foreground">Learning skills</h2>
+          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+            <Card className="p-4">
+              <p className="text-sm font-medium text-foreground">Vocabulary</p>
+              <p className="mt-1 text-xs text-muted-foreground">Lessons &amp; practice</p>
+            </Card>
+            <Card className="p-4">
+              <p className="text-sm font-medium text-foreground">Grammar</p>
+              <p className="mt-1 text-xs text-muted-foreground">Lessons &amp; practice</p>
+            </Card>
+            <Card className="p-4">
+              <p className="text-sm font-medium text-foreground">Kanji</p>
+              <p className="mt-1 text-xs text-muted-foreground">Lessons &amp; practice</p>
+            </Card>
+            <Card className="p-4">
+              <p className="text-sm font-medium text-foreground">Reading</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {readingCount > 0 ? `${readingCount} passages` : "Coming soon"}
+              </p>
+              {readingCount > 0 && (
+                <Link href="/app/learn/reading" className="mt-3 inline-block">
+                  <Button size="sm" variant="secondary">
+                    Open reading
+                  </Button>
+                </Link>
+              )}
+            </Card>
+            <Card className="p-4 opacity-70">
+              <p className="text-sm font-medium text-foreground">Listening</p>
+              <p className="mt-1 text-xs text-muted-foreground">Coming soon</p>
+            </Card>
+          </div>
+        </section>
+
         <section className="mb-8 rounded-xl border border-border bg-card p-5 shadow-sm">
           <h2 className="text-lg font-semibold text-foreground">JLPT level overview</h2>
           <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">

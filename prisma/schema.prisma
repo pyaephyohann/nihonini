@@ -73,7 +73,9 @@ model User {
   vocabularyProgresses UserVocabularyProgress[]
   grammarProgresses    UserGrammarProgress[]
   kanjiProgresses      UserKanjiProgress[]
+  readingProgresses    UserReadingProgress[]
   practiceAttempts     PracticeAttempt[]
+  readingSubmissions   ReadingSubmission[]
 
   @@map("users")
 }
@@ -476,4 +478,112 @@ model UserKanjiProgress {
   @@index([userId])
   @@index([userId, nextReviewAt])
   @@map("user_kanji_progress")
+}
+
+model Reading {
+  id               String        @id @default(cuid())
+  title            String
+  slug             String        @unique
+  subtitle         String?
+  description      String?       @db.Text
+  passage          String        @db.Text
+  jlptLevel        JapaneseLevel @map("jlpt_level")
+  difficulty       Int           @default(1)
+  estimatedMinutes Int           @default(3) @map("estimated_minutes")
+  order            Int           @map("sort_order")
+  published        Boolean       @default(false)
+  createdAt        DateTime      @default(now()) @map("created_at")
+  updatedAt        DateTime      @updatedAt @map("updated_at")
+
+  questions   ReadingQuestion[]
+  progresses  UserReadingProgress[]
+  submissions ReadingSubmission[]
+
+  @@unique([jlptLevel, order])
+  @@index([jlptLevel, published])
+  @@map("readings")
+}
+
+model ReadingQuestion {
+  id          String  @id @default(cuid())
+  readingId   String  @map("reading_id")
+  question    String  @db.Text
+  explanation String? @db.Text
+  order       Int     @map("sort_order")
+
+  reading  Reading                 @relation(fields: [readingId], references: [id], onDelete: Cascade)
+  options  ReadingQuestionOption[]
+  attempts ReadingQuestionAttempt[]
+
+  @@unique([readingId, order])
+  @@index([readingId])
+  @@map("reading_questions")
+}
+
+model ReadingQuestionOption {
+  id         String  @id @default(cuid())
+  questionId String  @map("question_id")
+  text       String
+  isCorrect  Boolean @default(false) @map("is_correct")
+  order      Int     @map("sort_order")
+
+  question ReadingQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@unique([questionId, order])
+  @@map("reading_question_options")
+}
+
+model UserReadingProgress {
+  id            String    @id @default(cuid())
+  userId        String    @map("user_id")
+  readingId     String    @map("reading_id")
+  attemptCount  Int       @default(0) @map("attempt_count")
+  completed     Boolean   @default(false)
+  bestScore     Float     @default(0) @map("best_score")
+  lastScore     Float     @default(0) @map("last_score")
+  mastery       Float     @default(0)
+  lastAttemptAt DateTime? @map("last_attempt_at")
+  completedAt   DateTime? @map("completed_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reading Reading @relation(fields: [readingId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, readingId])
+  @@index([userId])
+  @@map("user_reading_progress")
+}
+
+model ReadingSubmission {
+  id           String   @id @default(cuid())
+  userId       String   @map("user_id")
+  readingId    String   @map("reading_id")
+  correctCount Int      @map("correct_count")
+  totalCount   Int      @map("total_count")
+  scorePercent Int      @map("score_percent")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  user     User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reading  Reading                  @relation(fields: [readingId], references: [id], onDelete: Cascade)
+  attempts ReadingQuestionAttempt[]
+
+  @@index([userId])
+  @@index([userId, readingId])
+  @@index([userId, createdAt])
+  @@map("reading_submissions")
+}
+
+model ReadingQuestionAttempt {
+  id               String  @id @default(cuid())
+  submissionId     String  @map("submission_id")
+  questionId       String  @map("question_id")
+  selectedOptionId String  @map("selected_option_id")
+  isCorrect        Boolean @map("is_correct")
+
+  submission ReadingSubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  question   ReadingQuestion   @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@unique([submissionId, questionId])
+  @@map("reading_question_attempts")
 }
