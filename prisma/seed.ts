@@ -2,6 +2,7 @@ import { config } from "dotenv";
 import { PrismaPg } from "@prisma/adapter-pg";
 import {
   ExerciseType,
+  type LessonCategory,
   PrismaClient,
   type JapaneseLevel,
 } from "../src/generated/prisma/client";
@@ -110,6 +111,7 @@ async function seedLesson(lesson: LessonSeed, jlptLevelId: string, code: Japanes
     update: {
       title: lesson.title,
       description: lesson.description,
+      category: lesson.category as LessonCategory,
       order: lesson.order,
       estimatedMinutes: lesson.estimatedMinutes,
       published: lesson.published,
@@ -119,6 +121,7 @@ async function seedLesson(lesson: LessonSeed, jlptLevelId: string, code: Japanes
       title: lesson.title,
       slug: lesson.slug,
       description: lesson.description,
+      category: lesson.category as LessonCategory,
       order: lesson.order,
       estimatedMinutes: lesson.estimatedMinutes,
       published: lesson.published,

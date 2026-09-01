@@ -18,7 +18,9 @@ const userWithProfileSelect = {
     select: {
       displayName: true,
       japaneseLevel: true,
+      targetJlptLevel: true,
       learningGoal: true,
+      dailyGoal: true,
     },
   },
 } as const;
@@ -32,7 +34,9 @@ export type SafeUser = {
   profile: {
     displayName: string;
     japaneseLevel: JapaneseLevel;
+    targetJlptLevel: JapaneseLevel | null;
     learningGoal: LearningGoal;
+    dailyGoal: number;
   } | null;
 };
 
@@ -77,6 +81,7 @@ type CreateProfileInput = {
   userId: string;
   displayName: string;
   japaneseLevel: JapaneseLevel;
+  targetJlptLevel?: JapaneseLevel;
   learningGoal: LearningGoal;
 };
 
@@ -86,6 +91,7 @@ export async function createProfile(data: CreateProfileInput) {
       userId: data.userId,
       displayName: data.displayName,
       japaneseLevel: data.japaneseLevel,
+      targetJlptLevel: data.targetJlptLevel ?? data.japaneseLevel,
       learningGoal: data.learningGoal,
     },
   });
@@ -96,6 +102,7 @@ export async function createUserWithProfile(input: {
   passwordHash: string;
   displayName: string;
   japaneseLevel: JapaneseLevel;
+  targetJlptLevel: JapaneseLevel;
   learningGoal: LearningGoal;
 }) {
   return prisma.$transaction(async (tx) => {
@@ -108,6 +115,7 @@ export async function createUserWithProfile(input: {
           create: {
             displayName: input.displayName,
             japaneseLevel: input.japaneseLevel,
+            targetJlptLevel: input.targetJlptLevel,
             learningGoal: input.learningGoal,
           },
         },
@@ -116,5 +124,30 @@ export async function createUserWithProfile(input: {
     });
 
     return user;
+  });
+}
+
+export async function updateLearningPreferencesByUserId(input: {
+  userId: string;
+  japaneseLevel: JapaneseLevel;
+  targetJlptLevel: JapaneseLevel;
+  learningGoal: LearningGoal;
+  dailyGoal: number;
+}) {
+  return prisma.profile.update({
+    where: { userId: input.userId },
+    data: {
+      japaneseLevel: input.japaneseLevel,
+      targetJlptLevel: input.targetJlptLevel,
+      learningGoal: input.learningGoal,
+      dailyGoal: input.dailyGoal,
+    },
+    select: {
+      displayName: true,
+      japaneseLevel: true,
+      targetJlptLevel: true,
+      learningGoal: true,
+      dailyGoal: true,
+    },
   });
 }

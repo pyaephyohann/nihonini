@@ -40,6 +40,7 @@ export async function registerUser(input: RegisterInput): Promise<RegisterResult
       passwordHash,
       displayName: data.displayName,
       japaneseLevel: data.japaneseLevel,
+      targetJlptLevel: data.targetJlptLevel ?? data.japaneseLevel,
       learningGoal: data.learningGoal,
     });
   } catch {

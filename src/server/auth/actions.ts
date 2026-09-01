@@ -46,12 +46,17 @@ export async function registerAction(
   _prevState: AuthActionState,
   formData: FormData,
 ): Promise<AuthActionState> {
+  const rawTargetJlptLevel = String(formData.get("targetJlptLevel") ?? "").trim();
   const input: RegisterInput = {
     email: String(formData.get("email") ?? ""),
     password: String(formData.get("password") ?? ""),
     confirmPassword: String(formData.get("confirmPassword") ?? ""),
     displayName: String(formData.get("displayName") ?? ""),
     japaneseLevel: String(formData.get("japaneseLevel") ?? "") as RegisterInput["japaneseLevel"],
+    targetJlptLevel:
+      rawTargetJlptLevel.length > 0
+        ? (rawTargetJlptLevel as RegisterInput["targetJlptLevel"])
+        : undefined,
     learningGoal: String(formData.get("learningGoal") ?? "") as RegisterInput["learningGoal"],
   };
 

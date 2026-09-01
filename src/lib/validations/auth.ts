@@ -41,6 +41,11 @@ export const registerSchema = z
     japaneseLevel: z.enum(japaneseLevelValues, {
       error: "Please select a valid Japanese level.",
     }),
+    targetJlptLevel: z
+      .enum(japaneseLevelValues, {
+        error: "Please select a valid target JLPT level.",
+      })
+      .optional(),
     learningGoal: z.enum(learningGoalValues, {
       error: "Please select a valid learning goal.",
     }),

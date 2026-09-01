@@ -6,32 +6,25 @@ import {
   findPublishedLessonsByLevel,
   findPublishedLessonsByLevelForUser,
 } from "@/server/learning/lesson.repository";
+import { getNextRecommendedLesson } from "@/server/learning/jlpt.service";
 
 export async function getPublishedLessonsCatalog() {
   return findPublishedLessonsByLevel();
 }
 
 export async function getUserLessonsCatalog(userId: string) {
-  const levels = await findPublishedLessonsByLevelForUser(userId);
+  const [levels, recommendation] = await Promise.all([
+    findPublishedLessonsByLevelForUser(userId),
+    getNextRecommendedLesson(userId),
+  ]);
 
-  return levels.map((level) => {
-    let previousCompleted = true;
-    const lessons = level.lessons.map((lesson, index) => {
-      const locked = index === 0 ? false : !previousCompleted;
-      const completed = lesson.lessonStatus === "COMPLETED";
-      previousCompleted = completed;
-
-      return {
-        ...lesson,
-        locked,
-      };
-    });
-
-    return {
-      ...level,
-      lessons,
-    };
-  });
+  return levels.map((level) => ({
+    ...level,
+    lessons: level.lessons.map((lesson) => ({
+      ...lesson,
+      recommended: lesson.id === recommendation?.id,
+    })),
+  }));
 }
 
 export async function getLessonBySlug(slug: string): Promise<LessonDetail | null> {
@@ -46,6 +39,7 @@ export async function getLessonBySlug(slug: string): Promise<LessonDetail | null
     title: lesson.title,
     slug: lesson.slug,
     description: lesson.description,
+    category: lesson.category,
     order: lesson.order,
     estimatedMinutes: lesson.estimatedMinutes,
     jlptLevel: lesson.jlptLevel.code,

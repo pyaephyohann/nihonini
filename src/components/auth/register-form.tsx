@@ -40,6 +40,7 @@ export function RegisterForm() {
       confirmPassword: "",
       displayName: "",
       japaneseLevel: "N5",
+      targetJlptLevel: "N5",
       learningGoal: "JLPT",
     },
   });
@@ -54,6 +55,7 @@ export function RegisterForm() {
       formData.set("confirmPassword", data.confirmPassword);
       formData.set("displayName", data.displayName);
       formData.set("japaneseLevel", data.japaneseLevel);
+      formData.set("targetJlptLevel", data.targetJlptLevel ?? data.japaneseLevel);
       formData.set("learningGoal", data.learningGoal);
 
       const result = await registerAction({}, formData);
@@ -157,6 +159,22 @@ export function RegisterForm() {
         {errors.learningGoal && (
           <p className="text-sm text-error" role="alert">
             {errors.learningGoal.message}
+          </p>
+        )}
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="targetJlptLevel">Target JLPT level</Label>
+        <Select id="targetJlptLevel" {...register("targetJlptLevel")}>
+          {japaneseLevelValues.map((level) => (
+            <option key={level} value={level}>
+              {level}
+            </option>
+          ))}
+        </Select>
+        {errors.targetJlptLevel && (
+          <p className="text-sm text-error" role="alert">
+            {errors.targetJlptLevel.message}
           </p>
         )}
       </div>

@@ -4,7 +4,7 @@ import { findSafeUserById } from "@/server/users/user.repository";
 import { getDashboardSnapshot } from "@/server/learning/daily-learning.service";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { DailyGoalForm } from "@/components/learning/daily-goal-form";
+import { LearningPreferencesForm } from "@/components/learning/learning-preferences-form";
 
 export default async function AppDashboardPage() {
   const session = await requireAuth();
@@ -48,7 +48,7 @@ export default async function AppDashboardPage() {
               Learning goal
             </h2>
             <p className="mt-1 text-2xl font-bold text-foreground">
-              {user.profile.learningGoal.replaceAll("_", " ")}
+              {dashboard.learnerGoal.learningGoal.replaceAll("_", " ")}
             </p>
           </Card>
           <Card>
@@ -75,9 +75,6 @@ export default async function AppDashboardPage() {
             <p className="mt-2 text-sm text-muted-foreground">
               {dashboard.dailyProgress.percentage}%
             </p>
-            <div className="mt-4">
-              <DailyGoalForm currentGoal={dashboard.dailyProgress.target} />
-            </div>
           </Card>
           <Card>
             <h2 className="text-sm font-medium text-muted-foreground">Due reviews</h2>
@@ -102,6 +99,47 @@ export default async function AppDashboardPage() {
               <Link href={dashboard.continueLearning.lessonSlug ? `/app/learn/${dashboard.continueLearning.lessonSlug}` : "/app/learn"}>
                 <Button size="sm">Continue</Button>
               </Link>
+            </div>
+          </Card>
+          <Card className="sm:col-span-2 lg:col-span-3">
+            <h2 className="text-sm font-medium text-muted-foreground">🎯 JLPT goal</h2>
+            <p className="mt-1 text-2xl font-bold text-foreground">
+              {dashboard.learnerGoal.targetLevel}
+            </p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {dashboard.jlptPath.join(" → ")}
+            </p>
+            <div className="mt-3 h-2 w-full rounded-full bg-muted">
+              <div
+                className="h-2 rounded-full bg-primary"
+                style={{ width: `${dashboard.jlptPreparationProgress}%` }}
+              />
+            </div>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Preparation progress: {dashboard.jlptPreparationProgress}% · Vocab{" "}
+              {dashboard.jlptSkillProgress.vocabulary}% · Grammar{" "}
+              {dashboard.jlptSkillProgress.grammar}% · Kanji{" "}
+              {dashboard.jlptSkillProgress.kanji}%
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Reading and listening progress will appear when those modules are
+              implemented.
+            </p>
+          </Card>
+          <Card className="sm:col-span-2 lg:col-span-3">
+            <h2 className="text-sm font-medium text-muted-foreground">
+              Learning preferences
+            </h2>
+            <div className="mt-3">
+              <LearningPreferencesForm
+                defaults={{
+                  japaneseLevel: user.profile.japaneseLevel,
+                  targetJlptLevel:
+                    user.profile.targetJlptLevel ?? user.profile.japaneseLevel,
+                  learningGoal: user.profile.learningGoal,
+                  dailyGoal: user.profile.dailyGoal,
+                }}
+              />
             </div>
           </Card>
         </div>

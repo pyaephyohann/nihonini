@@ -41,6 +41,15 @@ enum ExerciseType {
   MATCHING
 }
 
+enum LessonCategory {
+  VOCABULARY
+  GRAMMAR
+  KANJI
+  READING
+  LISTENING
+  MIXED
+}
+
 enum LessonProgressStatus {
   IN_PROGRESS
   COMPLETED
@@ -109,14 +118,15 @@ model VerificationToken {
 }
 
 model Profile {
-  id            String        @id @default(cuid())
-  userId        String        @unique @map("user_id")
-  displayName   String        @map("display_name")
-  japaneseLevel JapaneseLevel @map("japanese_level")
-  learningGoal  LearningGoal  @map("learning_goal")
-  dailyGoal     Int           @default(10) @map("daily_goal")
-  createdAt     DateTime      @default(now()) @map("created_at")
-  updatedAt     DateTime      @updatedAt @map("updated_at")
+  id              String         @id @default(cuid())
+  userId          String         @unique @map("user_id")
+  displayName     String         @map("display_name")
+  japaneseLevel   JapaneseLevel  @map("japanese_level")
+  targetJlptLevel JapaneseLevel? @map("target_jlpt_level")
+  learningGoal    LearningGoal   @map("learning_goal")
+  dailyGoal       Int            @default(10) @map("daily_goal")
+  createdAt       DateTime       @default(now()) @map("created_at")
+  updatedAt       DateTime       @updatedAt @map("updated_at")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -138,16 +148,17 @@ model JlptLevel {
 }
 
 model Lesson {
-  id               String   @id @default(cuid())
+  id               String         @id @default(cuid())
   title            String
-  slug             String   @unique
+  slug             String         @unique
   description      String
-  jlptLevelId      String   @map("jlpt_level_id")
-  order            Int      @map("sort_order")
-  estimatedMinutes Int      @map("estimated_minutes")
-  published        Boolean  @default(false)
-  createdAt        DateTime @default(now()) @map("created_at")
-  updatedAt        DateTime @updatedAt @map("updated_at")
+  jlptLevelId      String         @map("jlpt_level_id")
+  category         LessonCategory @default(MIXED)
+  order            Int            @map("sort_order")
+  estimatedMinutes Int            @map("estimated_minutes")
+  published        Boolean        @default(false)
+  createdAt        DateTime       @default(now()) @map("created_at")
+  updatedAt        DateTime       @updatedAt @map("updated_at")
 
   jlptLevel        JlptLevel            @relation(fields: [jlptLevelId], references: [id], onDelete: Cascade)
   vocabularies     LessonVocabulary[]
@@ -159,6 +170,7 @@ model Lesson {
 
   @@unique([jlptLevelId, order])
   @@index([jlptLevelId, published])
+  @@index([jlptLevelId, category, published])
   @@map("lessons")
 }
 

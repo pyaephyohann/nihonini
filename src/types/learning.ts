@@ -1,7 +1,9 @@
 import type {
   ExerciseType,
   JapaneseLevel,
+  LessonCategory,
   LessonProgressStatus,
+  LearningGoal,
   PartOfSpeech,
 } from "@/generated/prisma/client";
 
@@ -62,9 +64,10 @@ export type LessonSummary = {
   order: number;
   estimatedMinutes: number;
   jlptLevel: JapaneseLevel;
+  category: LessonCategory;
   progressPercent?: number;
   lessonStatus?: LessonProgressStatus;
-  locked?: boolean;
+  recommended?: boolean;
 };
 
 export type LessonDetail = LessonSummary & {
@@ -115,9 +118,53 @@ export type DashboardSnapshot = {
   streakDays: number;
   dueReviews: DueReviewSummary;
   dailyProgress: DailyProgress;
+  learnerGoal: {
+    currentLevel: JapaneseLevel;
+    targetLevel: JapaneseLevel;
+    learningGoal: LearningGoal;
+    dailyGoal: number;
+  };
+  jlptPath: JapaneseLevel[];
+  jlptPreparationProgress: number;
+  jlptSkillProgress: {
+    vocabulary: number;
+    grammar: number;
+    kanji: number;
+    reading: null;
+    listening: null;
+  };
   continueLearning: {
     lessonTitle: string | null;
     lessonSlug: string | null;
     progressPercent: number;
   };
+};
+
+export type JlptSkillProgress = {
+  vocabulary: number;
+  grammar: number;
+  kanji: number;
+  reading: null;
+  listening: null;
+  overall: number;
+};
+
+export type JlptLevelOverview = {
+  level: JapaneseLevel;
+  name: string;
+  description: string;
+  lessonCount: number;
+  completedLessons: number;
+  progressPercent: number;
+  isTarget: boolean;
+  isCurrent: boolean;
+};
+
+export type JlptCurriculum = {
+  learnerGoal: {
+    currentLevel: JapaneseLevel;
+    targetLevel: JapaneseLevel;
+  };
+  path: JapaneseLevel[];
+  levels: JlptLevelOverview[];
 };

@@ -8,6 +8,13 @@ export type PartOfSpeech =
   | "OTHER";
 
 export type JapaneseLevelCode = "N5" | "N4" | "N3" | "N2" | "N1";
+export type LessonCategorySeed =
+  | "VOCABULARY"
+  | "GRAMMAR"
+  | "KANJI"
+  | "READING"
+  | "LISTENING"
+  | "MIXED";
 
 export type VocabSeed = {
   word: string;
@@ -40,6 +47,7 @@ export type LessonSeed = {
   slug: string;
   title: string;
   description: string;
+  category: LessonCategorySeed;
   order: number;
   estimatedMinutes: number;
   published: boolean;
@@ -91,6 +99,7 @@ export const N5_LESSONS: LessonSeed[] = [
     slug: "n5-greetings",
     title: "Greetings",
     description: "Learn essential Japanese greetings for everyday interactions.",
+    category: "VOCABULARY",
     order: 1,
     estimatedMinutes: 15,
     published: true,
@@ -135,6 +144,7 @@ export const N5_LESSONS: LessonSeed[] = [
     slug: "n5-self-introduction",
     title: "Self Introduction",
     description: "Introduce yourself with name, nationality, and occupation.",
+    category: "GRAMMAR",
     order: 2,
     estimatedMinutes: 20,
     published: true,
@@ -179,6 +189,7 @@ export const N5_LESSONS: LessonSeed[] = [
     slug: "n5-numbers-and-time",
     title: "Numbers and Time",
     description: "Count, tell time, and talk about schedules.",
+    category: "KANJI",
     order: 3,
     estimatedMinutes: 20,
     published: true,
@@ -223,6 +234,7 @@ export const N5_LESSONS: LessonSeed[] = [
     slug: "n5-family",
     title: "Family",
     description: "Talk about family members and relationships.",
+    category: "VOCABULARY",
     order: 4,
     estimatedMinutes: 20,
     published: true,
@@ -267,6 +279,7 @@ export const N5_LESSONS: LessonSeed[] = [
     slug: "n5-daily-life",
     title: "Daily Life",
     description: "Essential vocabulary for everyday activities in Japan.",
+    category: "MIXED",
     order: 5,
     estimatedMinutes: 25,
     published: true,
@@ -311,6 +324,7 @@ export const N5_LESSONS: LessonSeed[] = [
     slug: "n5-advanced-greetings-draft",
     title: "Advanced Greetings (Draft)",
     description: "Unpublished draft lesson for internal testing.",
+    category: "VOCABULARY",
     order: 6,
     estimatedMinutes: 10,
     published: false,
@@ -325,6 +339,7 @@ export const PLACEHOLDER_LESSONS: Record<Exclude<JapaneseLevelCode, "N5">, Lesso
     slug: "n4-intro",
     title: "N4 Introduction",
     description: "Placeholder demo lesson for JLPT N4 content.",
+    category: "MIXED",
     order: 1,
     estimatedMinutes: 10,
     published: true,
@@ -345,6 +360,7 @@ export const PLACEHOLDER_LESSONS: Record<Exclude<JapaneseLevelCode, "N5">, Lesso
     slug: "n3-intro",
     title: "N3 Introduction",
     description: "Placeholder demo lesson for JLPT N3 content.",
+    category: "MIXED",
     order: 1,
     estimatedMinutes: 10,
     published: true,
@@ -356,6 +372,7 @@ export const PLACEHOLDER_LESSONS: Record<Exclude<JapaneseLevelCode, "N5">, Lesso
     slug: "n2-intro",
     title: "N2 Introduction",
     description: "Placeholder demo lesson for JLPT N2 content.",
+    category: "MIXED",
     order: 1,
     estimatedMinutes: 10,
     published: true,
@@ -367,6 +384,7 @@ export const PLACEHOLDER_LESSONS: Record<Exclude<JapaneseLevelCode, "N5">, Lesso
     slug: "n1-intro",
     title: "N1 Introduction",
     description: "Placeholder demo lesson for JLPT N1 content.",
+    category: "MIXED",
     order: 1,
     estimatedMinutes: 10,
     published: true,

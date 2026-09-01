@@ -3,6 +3,7 @@ import "server-only";
 import { prisma } from "@/server/db";
 import { updateDailyGoalSchema } from "@/lib/validations/learning";
 import type { DashboardSnapshot, DueReviewSummary } from "@/types/learning";
+import { getJlptPath, getJlptSkillProgress, getNextRecommendedLesson } from "@/server/learning/jlpt.service";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -19,17 +20,15 @@ function toUtcDayKey(date: Date): string {
 export async function getDueReviewSummary(userId: string): Promise<DueReviewSummary> {
   const now = new Date();
 
-  const [vocabulary, grammar, kanji] = await Promise.all([
-    prisma.userVocabularyProgress.count({
-      where: { userId, nextReviewAt: { lte: now } },
-    }),
-    prisma.userGrammarProgress.count({
-      where: { userId, nextReviewAt: { lte: now } },
-    }),
-    prisma.userKanjiProgress.count({
-      where: { userId, nextReviewAt: { lte: now } },
-    }),
-  ]);
+  const vocabulary = await prisma.userVocabularyProgress.count({
+    where: { userId, nextReviewAt: { lte: now } },
+  });
+  const grammar = await prisma.userGrammarProgress.count({
+    where: { userId, nextReviewAt: { lte: now } },
+  });
+  const kanji = await prisma.userKanjiProgress.count({
+    where: { userId, nextReviewAt: { lte: now } },
+  });
 
   return {
     vocabulary,
@@ -131,25 +130,46 @@ export async function getStreakDays(userId: string, dailyGoal: number): Promise<
 export async function getDashboardSnapshot(userId: string): Promise<DashboardSnapshot> {
   const profile = await prisma.profile.findUnique({
     where: { userId },
-    select: { dailyGoal: true, japaneseLevel: true },
+    select: {
+      dailyGoal: true,
+      japaneseLevel: true,
+      targetJlptLevel: true,
+      learningGoal: true,
+    },
   });
 
   const dailyGoal = profile?.dailyGoal ?? 10;
-  const [dueReviews, dailyProgress, streakDays, learningPlan] = await Promise.all([
-    getDueReviewSummary(userId),
-    getDailyActivity(userId, dailyGoal),
-    getStreakDays(userId, dailyGoal),
-    getTodaysLearningPlan(userId, profile?.japaneseLevel),
-  ]);
+  const currentLevel = profile?.japaneseLevel ?? "N5";
+  const targetLevel = profile?.targetJlptLevel ?? currentLevel;
+  const dueReviews = await getDueReviewSummary(userId);
+  const dailyProgress = await getDailyActivity(userId, dailyGoal);
+  const streakDays = await getStreakDays(userId, dailyGoal);
+  const recommendation = await getNextRecommendedLesson(userId);
+  const targetSkillProgress = await getJlptSkillProgress(userId, targetLevel);
 
   return {
     streakDays,
     dueReviews,
     dailyProgress,
+    learnerGoal: {
+      currentLevel,
+      targetLevel,
+      learningGoal: profile?.learningGoal ?? "JLPT",
+      dailyGoal,
+    },
+    jlptPath: getJlptPath(currentLevel, targetLevel),
+    jlptPreparationProgress: targetSkillProgress.overall,
+    jlptSkillProgress: {
+      vocabulary: targetSkillProgress.vocabulary,
+      grammar: targetSkillProgress.grammar,
+      kanji: targetSkillProgress.kanji,
+      reading: null,
+      listening: null,
+    },
     continueLearning: {
-      lessonTitle: learningPlan.lessonTitle,
-      lessonSlug: learningPlan.lessonSlug,
-      progressPercent: learningPlan.progressPercent,
+      lessonTitle: recommendation?.title ?? null,
+      lessonSlug: recommendation?.slug ?? null,
+      progressPercent: recommendation?.progressPercent ?? 0,
     },
   };
 }
