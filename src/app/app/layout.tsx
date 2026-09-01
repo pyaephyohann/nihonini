@@ -33,15 +33,21 @@ export default async function AppLayout({
           </Link>
 
           <div className="flex items-center gap-3">
-          <Link
-            href="/app/learn"
-            className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded-sm"
-          >
-            Learn
-          </Link>
-          <span className="hidden text-sm text-muted-foreground sm:inline">
-            {session.user.email}
-          </span>
+            <Link
+              href="/app/learn"
+              className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded-sm"
+            >
+              Learn
+            </Link>
+            <Link
+              href="/app/practice"
+              className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded-sm"
+            >
+              Practice
+            </Link>
+            <span className="hidden text-sm text-muted-foreground sm:inline">
+              {session.user.email}
+            </span>
             <form action={logoutAction}>
               <Button type="submit" variant="secondary" size="sm">
                 Sign out

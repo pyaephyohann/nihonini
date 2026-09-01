@@ -168,3 +168,28 @@ export type JlptCurriculum = {
   path: JapaneseLevel[];
   levels: JlptLevelOverview[];
 };
+
+export type PracticeSkill = "VOCABULARY" | "GRAMMAR" | "KANJI";
+export type PracticeMode = "REVIEW" | "WEAKNESS" | "LEVEL";
+
+export type PracticeSafeExercise = ClientExercise & {
+  skill: PracticeSkill;
+  jlptLevel: JapaneseLevel;
+  lessonTitle: string;
+};
+
+export type PracticeSessionPlan = {
+  level: JapaneseLevel;
+  skill: PracticeSkill;
+  mode: PracticeMode;
+  requestedCount: number;
+  availableCount: number;
+  exercises: PracticeSafeExercise[];
+  emptyStateMessage: string | null;
+};
+
+export type PracticeWeakSkill = {
+  skill: PracticeSkill;
+  level: JapaneseLevel;
+  masteryPercent: number;
+};
