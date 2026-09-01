@@ -1,6 +1,7 @@
 import "server-only";
 
 import type { ExerciseType, JapaneseLevel } from "@/generated/prisma/client";
+import { MASTERED_MASTERY_THRESHOLD } from "@/server/learning/mastery";
 import { prisma } from "@/server/db";
 import type { PracticeMode, PracticeSkill } from "@/types/learning";
 
@@ -217,10 +218,10 @@ export async function findLevelPriorityTargetIds(
     ]);
 
     const nonMastered = progress
-      .filter((row) => row.mastery < 0.8)
+      .filter((row) => row.mastery < MASTERED_MASTERY_THRESHOLD)
       .map((row) => row.vocabularyId);
     const mastered = progress
-      .filter((row) => row.mastery >= 0.8)
+      .filter((row) => row.mastery >= MASTERED_MASTERY_THRESHOLD)
       .map((row) => row.vocabularyId);
     const seen = new Set(progress.map((row) => row.vocabularyId));
     const unseen = content.map((item) => item.id).filter((id) => !seen.has(id));
@@ -242,10 +243,10 @@ export async function findLevelPriorityTargetIds(
     ]);
 
     const nonMastered = progress
-      .filter((row) => row.mastery < 0.8)
+      .filter((row) => row.mastery < MASTERED_MASTERY_THRESHOLD)
       .map((row) => row.grammarId);
     const mastered = progress
-      .filter((row) => row.mastery >= 0.8)
+      .filter((row) => row.mastery >= MASTERED_MASTERY_THRESHOLD)
       .map((row) => row.grammarId);
     const seen = new Set(progress.map((row) => row.grammarId));
     const unseen = content.map((item) => item.id).filter((id) => !seen.has(id));
@@ -266,10 +267,10 @@ export async function findLevelPriorityTargetIds(
   ]);
 
   const nonMastered = progress
-    .filter((row) => row.mastery < 0.8)
+    .filter((row) => row.mastery < MASTERED_MASTERY_THRESHOLD)
     .map((row) => row.kanjiId);
   const mastered = progress
-    .filter((row) => row.mastery >= 0.8)
+    .filter((row) => row.mastery >= MASTERED_MASTERY_THRESHOLD)
     .map((row) => row.kanjiId);
   const seen = new Set(progress.map((row) => row.kanjiId));
   const unseen = content.map((item) => item.id).filter((id) => !seen.has(id));

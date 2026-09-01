@@ -193,3 +193,86 @@ export type PracticeWeakSkill = {
   level: JapaneseLevel;
   masteryPercent: number;
 };
+
+export type SkillInsight = {
+  skill: PracticeSkill;
+  level: JapaneseLevel;
+  masteryPercent: number;
+  itemsStarted: number;
+};
+
+export type SkillAnalytics = {
+  skill: PracticeSkill;
+  masteryPercent: number;
+  accuracy: number | null;
+  totalItems: number;
+  itemsStarted: number;
+  itemsMastered: number;
+  itemsInProgress: number;
+  dueReviews: number;
+  hasData: boolean;
+};
+
+export type LearningAnalytics = {
+  hasActivity: boolean;
+  overall: {
+    masteryPercent: number;
+    accuracy: number | null;
+    completedLessons: number;
+    totalLessons: number;
+  };
+  skills: {
+    vocabulary: SkillAnalytics;
+    grammar: SkillAnalytics;
+    kanji: SkillAnalytics;
+    reading: null;
+    listening: null;
+  };
+  practice: {
+    totalAttempts: number;
+    totalQuestions: number;
+    correctAnswers: number;
+    incorrectAnswers: number;
+    accuracy: number | null;
+    recentAccuracy: number | null;
+    recentSampleSize: number;
+  };
+  jlpt: {
+    currentLevel: JapaneseLevel;
+    targetLevel: JapaneseLevel;
+    path: JapaneseLevel[];
+    targetPathProgress: number;
+    currentLevelProgress: number;
+    levels: {
+      level: JapaneseLevel;
+      name: string;
+      progressPercent: number;
+      lessonCount: number;
+      completedLessons: number;
+      isCurrent: boolean;
+      isTarget: boolean;
+      hasContent: boolean;
+    }[];
+  };
+  weaknesses: SkillInsight[];
+  strengths: SkillInsight[];
+  accuracyTrend: {
+    day: string;
+    label: string;
+    accuracy: number;
+    total: number;
+  }[];
+  recentPracticeDays: {
+    day: string;
+    label: string;
+    totalQuestions: number;
+    correctAnswers: number;
+    accuracy: number;
+  }[];
+  recentActivity: {
+    type: "LESSON_COMPLETED" | "PRACTICE";
+    label: string;
+    href: string;
+    occurredAt: string;
+  }[];
+};

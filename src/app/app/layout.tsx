@@ -45,6 +45,12 @@ export default async function AppLayout({
             >
               Practice
             </Link>
+            <Link
+              href="/app/progress"
+              className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded-sm"
+            >
+              Progress
+            </Link>
             <span className="hidden text-sm text-muted-foreground sm:inline">
               {session.user.email}
             </span>

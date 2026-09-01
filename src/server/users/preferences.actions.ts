@@ -28,6 +28,7 @@ export async function updateLearningPreferencesAction(
 
   revalidatePath("/app");
   revalidatePath("/app/learn");
+  revalidatePath("/app/progress");
   return { success: true };
 }
 

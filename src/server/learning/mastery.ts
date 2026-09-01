@@ -29,3 +29,6 @@ export function calculateLessonProgressPercent(correctCount: number, totalCount:
 
 export const LESSON_COMPLETION_THRESHOLD = 80;
 
+/** Items at or above this mastery value (0–1) are considered mastered. */
+export const MASTERED_MASTERY_THRESHOLD = 0.8;
+

@@ -2,18 +2,17 @@ import Link from "next/link";
 import { requireAuth } from "@/server/auth/require-auth";
 import { findSafeUserById } from "@/server/users/user.repository";
 import { getDashboardSnapshot } from "@/server/learning/daily-learning.service";
-import { getWeakSkillRecommendations } from "@/server/learning/practice-session.service";
+import { getUserLearningAnalytics } from "@/server/learning/analytics.service";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { LearningPreferencesForm } from "@/components/learning/learning-preferences-form";
+import { LearningOverview } from "@/components/analytics/learning-overview";
 
 export default async function AppDashboardPage() {
   const session = await requireAuth();
-  const [user, dashboard, weakSkills] = await Promise.all([
-    findSafeUserById(session.user.id),
-    getDashboardSnapshot(session.user.id),
-    getWeakSkillRecommendations(session.user.id),
-  ]);
+  const user = await findSafeUserById(session.user.id);
+  const dashboard = await getDashboardSnapshot(session.user.id);
+  const analytics = await getUserLearningAnalytics(session.user.id);
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6 lg:px-8">
@@ -129,40 +128,7 @@ export default async function AppDashboardPage() {
             </p>
           </Card>
           <Card className="sm:col-span-2 lg:col-span-3">
-            <h2 className="text-sm font-medium text-muted-foreground">
-              Practice your weakest skills
-            </h2>
-            {weakSkills.length === 0 ? (
-              <p className="mt-2 text-sm text-muted-foreground">
-                Not enough practice data yet. Complete a few exercises and
-                we&apos;ll identify your weak areas.
-              </p>
-            ) : (
-              <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                {weakSkills.map((item) => (
-                  <div key={item.skill} className="rounded-lg border border-border p-4">
-                    <p className="text-sm font-semibold text-foreground">{item.skill}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {item.level} · Mastery {item.masteryPercent}%
-                    </p>
-                    <div className="mt-3">
-                      <Link
-                        href={`/app/practice/session?level=${item.level}&skill=${item.skill}&mode=WEAKNESS&count=10`}
-                      >
-                        <Button size="sm" variant="secondary">
-                          Practice {item.skill.toLowerCase()}
-                        </Button>
-                      </Link>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-            <div className="mt-3">
-              <Link href="/app/practice">
-                <Button size="sm">Open practice</Button>
-              </Link>
-            </div>
+            <LearningOverview analytics={analytics} />
           </Card>
           <Card className="sm:col-span-2 lg:col-span-3">
             <h2 className="text-sm font-medium text-muted-foreground">

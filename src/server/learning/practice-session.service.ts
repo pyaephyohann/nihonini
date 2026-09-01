@@ -16,6 +16,7 @@ import {
   getExerciseTargetIds,
 } from "@/server/learning/practice-session.repository";
 import { getJlptPath } from "@/server/learning/jlpt.service";
+import { getWeakSkills } from "@/server/learning/analytics.service";
 import { prisma } from "@/server/db";
 
 function toSafeExercise(
@@ -206,67 +207,14 @@ export async function getPracticeAvailabilityMatrix() {
 export async function getWeakSkillRecommendations(userId: string): Promise<PracticeWeakSkill[]> {
   const profile = await prisma.profile.findUnique({
     where: { userId },
-    select: { japaneseLevel: true, targetJlptLevel: true },
+    select: { japaneseLevel: true },
   });
   const currentLevel = profile?.japaneseLevel ?? "N5";
-
-  const [vocabRows, grammarRows, kanjiRows] = await Promise.all([
-    prisma.userVocabularyProgress.findMany({
-      where: { userId },
-      select: { mastery: true, vocabulary: { select: { jlptLevel: true } } },
-    }),
-    prisma.userGrammarProgress.findMany({
-      where: { userId },
-      select: { mastery: true, grammar: { select: { jlptLevel: true } } },
-    }),
-    prisma.userKanjiProgress.findMany({
-      where: { userId },
-      select: { mastery: true, kanji: { select: { jlptLevel: true } } },
-    }),
-  ]);
-
-  const vocabLevelRows = vocabRows.filter(
-    (row) => row.vocabulary.jlptLevel === currentLevel,
-  );
-  const grammarLevelRows = grammarRows.filter(
-    (row) => row.grammar.jlptLevel === currentLevel,
-  );
-  const kanjiLevelRows = kanjiRows.filter((row) => row.kanji.jlptLevel === currentLevel);
-
-  const vocabAvg =
-    vocabLevelRows.length > 0
-      ? vocabLevelRows.reduce((sum, row) => sum + row.mastery, 0) /
-        vocabLevelRows.length
-      : 0;
-  const grammarAvg =
-    grammarLevelRows.length > 0
-      ? grammarLevelRows.reduce((sum, row) => sum + row.mastery, 0) /
-        grammarLevelRows.length
-      : 0;
-  const kanjiAvg =
-    kanjiLevelRows.length > 0
-      ? kanjiLevelRows.reduce((sum, row) => sum + row.mastery, 0) /
-        kanjiLevelRows.length
-      : 0;
-
-  const rows: PracticeWeakSkill[] = [
-    {
-      skill: "VOCABULARY",
-      level: currentLevel,
-      masteryPercent: Math.round(vocabAvg * 100),
-    },
-    {
-      skill: "GRAMMAR",
-      level: currentLevel,
-      masteryPercent: Math.round(grammarAvg * 100),
-    },
-    {
-      skill: "KANJI",
-      level: currentLevel,
-      masteryPercent: Math.round(kanjiAvg * 100),
-    },
-  ];
-
-  return rows.sort((a, b) => a.masteryPercent - b.masteryPercent).slice(0, 2);
+  const weaknesses = await getWeakSkills(userId, currentLevel, 2);
+  return weaknesses.map((item) => ({
+    skill: item.skill,
+    level: item.level,
+    masteryPercent: item.masteryPercent,
+  }));
 }
 
