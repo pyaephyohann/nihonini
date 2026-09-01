@@ -47,10 +47,14 @@ export function SiteHeader() {
         </nav>
 
         <div className="hidden items-center gap-3 md:flex">
-          <Button variant="ghost" size="sm">
-            Login
-          </Button>
-          <Button size="sm">Start Learning</Button>
+          <Link href="/login">
+            <Button variant="ghost" size="sm">
+              Login
+            </Button>
+          </Link>
+          <Link href="/register">
+            <Button size="sm">Start Learning</Button>
+          </Link>
         </div>
 
         <button
@@ -89,12 +93,16 @@ export function SiteHeader() {
             </a>
           ))}
           <div className="mt-3 flex flex-col gap-2 border-t border-border pt-3">
-            <Button variant="ghost" size="sm" className="w-full">
-              Login
-            </Button>
-            <Button size="sm" className="w-full">
-              Start Learning
-            </Button>
+            <Link href="/login" onClick={() => setMobileOpen(false)}>
+              <Button variant="ghost" size="sm" className="w-full">
+                Login
+              </Button>
+            </Link>
+            <Link href="/register" onClick={() => setMobileOpen(false)}>
+              <Button size="sm" className="w-full">
+                Start Learning
+              </Button>
+            </Link>
           </div>
         </div>
       </nav>

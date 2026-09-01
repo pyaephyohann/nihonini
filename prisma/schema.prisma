@@ -1,0 +1,296 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum JapaneseLevel {
+  N5
+  N4
+  N3
+  N2
+  N1
+}
+
+enum LearningGoal {
+  JLPT
+  STUDY
+  WORK
+  TRAVEL
+  LIFE_IN_JAPAN
+}
+
+enum PartOfSpeech {
+  NOUN
+  VERB
+  ADJECTIVE
+  ADVERB
+  PARTICLE
+  EXPRESSION
+  OTHER
+}
+
+enum ExerciseType {
+  MULTIPLE_CHOICE
+  FILL_BLANK
+  TRANSLATION
+  ORDERING
+  MATCHING
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime? @map("email_verified")
+  image         String?
+  passwordHash  String?   @map("password_hash")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  accounts Account[]
+  sessions Session[]
+  profile  Profile?
+
+  @@map("users")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String  @map("user_id")
+  type              String
+  provider          String
+  providerAccountId String  @map("provider_account_id")
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique @map("session_token")
+  userId       String   @map("user_id")
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+model Profile {
+  id            String        @id @default(cuid())
+  userId        String        @unique @map("user_id")
+  displayName   String        @map("display_name")
+  japaneseLevel JapaneseLevel @map("japanese_level")
+  learningGoal  LearningGoal  @map("learning_goal")
+  createdAt     DateTime      @default(now()) @map("created_at")
+  updatedAt     DateTime      @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("profiles")
+}
+
+model JlptLevel {
+  id          String        @id @default(cuid())
+  code        JapaneseLevel @unique
+  name        String
+  description String
+  order       Int           @unique @map("sort_order")
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
+
+  lessons Lesson[]
+
+  @@map("jlpt_levels")
+}
+
+model Lesson {
+  id               String   @id @default(cuid())
+  title            String
+  slug             String   @unique
+  description      String
+  jlptLevelId      String   @map("jlpt_level_id")
+  order            Int      @map("sort_order")
+  estimatedMinutes Int      @map("estimated_minutes")
+  published        Boolean  @default(false)
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  jlptLevel    JlptLevel          @relation(fields: [jlptLevelId], references: [id], onDelete: Cascade)
+  vocabularies LessonVocabulary[]
+  grammars     LessonGrammar[]
+  kanjiItems   LessonKanji[]
+  exercises    Exercise[]
+
+  @@unique([jlptLevelId, order])
+  @@index([jlptLevelId, published])
+  @@map("lessons")
+}
+
+model Vocabulary {
+  id              String        @id @default(cuid())
+  word            String
+  reading         String
+  meaning         String
+  partOfSpeech    PartOfSpeech  @map("part_of_speech")
+  jlptLevel       JapaneseLevel @map("jlpt_level")
+  difficulty      Int           @default(1)
+  exampleSentence String?       @map("example_sentence") @db.Text
+  exampleReading  String?       @map("example_reading")
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+
+  lessons LessonVocabulary[]
+  kanji   VocabularyKanji[]
+
+  @@unique([word, reading])
+  @@index([jlptLevel])
+  @@map("vocabularies")
+}
+
+model Grammar {
+  id              String        @id @default(cuid())
+  pattern         String
+  meaning         String
+  explanation     String        @db.Text
+  structure       String
+  jlptLevel       JapaneseLevel @map("jlpt_level")
+  difficulty      Int           @default(1)
+  exampleSentence String?       @map("example_sentence") @db.Text
+  exampleReading  String?       @map("example_reading")
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+
+  lessons LessonGrammar[]
+
+  @@unique([pattern, meaning])
+  @@index([jlptLevel])
+  @@map("grammars")
+}
+
+model Kanji {
+  id          String        @id @default(cuid())
+  character   String        @unique
+  meaning     String
+  onyomi      String
+  kunyomi     String
+  jlptLevel   JapaneseLevel @map("jlpt_level")
+  strokeCount Int           @map("stroke_count")
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
+
+  lessons    LessonKanji[]
+  vocabulary VocabularyKanji[]
+
+  @@index([jlptLevel])
+  @@map("kanji")
+}
+
+model LessonVocabulary {
+  id           String @id @default(cuid())
+  lessonId     String @map("lesson_id")
+  vocabularyId String @map("vocabulary_id")
+  order        Int    @map("sort_order")
+
+  lesson     Lesson     @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  vocabulary Vocabulary @relation(fields: [vocabularyId], references: [id], onDelete: Cascade)
+
+  @@unique([lessonId, vocabularyId])
+  @@unique([lessonId, order])
+  @@map("lesson_vocabularies")
+}
+
+model LessonGrammar {
+  id        String @id @default(cuid())
+  lessonId  String @map("lesson_id")
+  grammarId String @map("grammar_id")
+  order     Int    @map("sort_order")
+
+  lesson  Lesson  @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  grammar Grammar @relation(fields: [grammarId], references: [id], onDelete: Cascade)
+
+  @@unique([lessonId, grammarId])
+  @@unique([lessonId, order])
+  @@map("lesson_grammars")
+}
+
+model LessonKanji {
+  id       String @id @default(cuid())
+  lessonId String @map("lesson_id")
+  kanjiId  String @map("kanji_id")
+  order    Int    @map("sort_order")
+
+  lesson Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  kanji  Kanji  @relation(fields: [kanjiId], references: [id], onDelete: Cascade)
+
+  @@unique([lessonId, kanjiId])
+  @@unique([lessonId, order])
+  @@map("lesson_kanji")
+}
+
+model VocabularyKanji {
+  id           String @id @default(cuid())
+  vocabularyId String @map("vocabulary_id")
+  kanjiId      String @map("kanji_id")
+  order        Int    @map("sort_order")
+
+  vocabulary Vocabulary @relation(fields: [vocabularyId], references: [id], onDelete: Cascade)
+  kanji      Kanji      @relation(fields: [kanjiId], references: [id], onDelete: Cascade)
+
+  @@unique([vocabularyId, kanjiId])
+  @@map("vocabulary_kanji")
+}
+
+model Exercise {
+  id          String       @id @default(cuid())
+  lessonId    String       @map("lesson_id")
+  type        ExerciseType
+  question    String       @db.Text
+  explanation String?      @db.Text
+  difficulty  Int          @default(1)
+  points      Int          @default(10)
+  order       Int          @map("sort_order")
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @updatedAt @map("updated_at")
+
+  lesson  Lesson           @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  options ExerciseOption[]
+
+  @@unique([lessonId, order])
+  @@index([lessonId])
+  @@map("exercises")
+}
+
+model ExerciseOption {
+  id         String  @id @default(cuid())
+  exerciseId String  @map("exercise_id")
+  text       String
+  isCorrect  Boolean @default(false) @map("is_correct")
+  order      Int     @map("sort_order")
+
+  exercise Exercise @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+
+  @@unique([exerciseId, order])
+  @@map("exercise_options")
+}
