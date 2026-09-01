@@ -95,7 +95,7 @@ export default async function LessonPage({ params }: LessonPageProps) {
           Exercises
         </h2>
         <div className="mt-6">
-          <ExerciseList exercises={lesson.exercises} />
+          <ExerciseList exercises={lesson.exercises} backHref={`/app/learn/${lesson.slug}`} />
         </div>
       </section>
     </div>

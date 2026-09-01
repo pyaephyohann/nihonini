@@ -41,6 +41,11 @@ enum ExerciseType {
   MATCHING
 }
 
+enum LessonProgressStatus {
+  IN_PROGRESS
+  COMPLETED
+}
+
 model User {
   id            String    @id @default(cuid())
   name          String?
@@ -54,6 +59,12 @@ model User {
   accounts Account[]
   sessions Session[]
   profile  Profile?
+
+  lessonProgresses     UserLessonProgress[]
+  vocabularyProgresses UserVocabularyProgress[]
+  grammarProgresses    UserGrammarProgress[]
+  kanjiProgresses      UserKanjiProgress[]
+  practiceAttempts     PracticeAttempt[]
 
   @@map("users")
 }
@@ -103,6 +114,7 @@ model Profile {
   displayName   String        @map("display_name")
   japaneseLevel JapaneseLevel @map("japanese_level")
   learningGoal  LearningGoal  @map("learning_goal")
+  dailyGoal     Int           @default(10) @map("daily_goal")
   createdAt     DateTime      @default(now()) @map("created_at")
   updatedAt     DateTime      @updatedAt @map("updated_at")
 
@@ -137,11 +149,13 @@ model Lesson {
   createdAt        DateTime @default(now()) @map("created_at")
   updatedAt        DateTime @updatedAt @map("updated_at")
 
-  jlptLevel    JlptLevel          @relation(fields: [jlptLevelId], references: [id], onDelete: Cascade)
-  vocabularies LessonVocabulary[]
-  grammars     LessonGrammar[]
-  kanjiItems   LessonKanji[]
-  exercises    Exercise[]
+  jlptLevel        JlptLevel            @relation(fields: [jlptLevelId], references: [id], onDelete: Cascade)
+  vocabularies     LessonVocabulary[]
+  grammars         LessonGrammar[]
+  kanjiItems       LessonKanji[]
+  exercises        Exercise[]
+  progresses       UserLessonProgress[]
+  practiceAttempts PracticeAttempt[]
 
   @@unique([jlptLevelId, order])
   @@index([jlptLevelId, published])
@@ -161,8 +175,10 @@ model Vocabulary {
   createdAt       DateTime      @default(now()) @map("created_at")
   updatedAt       DateTime      @updatedAt @map("updated_at")
 
-  lessons LessonVocabulary[]
-  kanji   VocabularyKanji[]
+  lessons    LessonVocabulary[]
+  kanji      VocabularyKanji[]
+  exercises  ExerciseVocabulary[]
+  progresses UserVocabularyProgress[]
 
   @@unique([word, reading])
   @@index([jlptLevel])
@@ -182,7 +198,9 @@ model Grammar {
   createdAt       DateTime      @default(now()) @map("created_at")
   updatedAt       DateTime      @updatedAt @map("updated_at")
 
-  lessons LessonGrammar[]
+  lessons    LessonGrammar[]
+  exercises  ExerciseGrammar[]
+  progresses UserGrammarProgress[]
 
   @@unique([pattern, meaning])
   @@index([jlptLevel])
@@ -202,6 +220,8 @@ model Kanji {
 
   lessons    LessonKanji[]
   vocabulary VocabularyKanji[]
+  exercises  ExerciseKanji[]
+  progresses UserKanjiProgress[]
 
   @@index([jlptLevel])
   @@map("kanji")
@@ -274,8 +294,12 @@ model Exercise {
   createdAt   DateTime     @default(now()) @map("created_at")
   updatedAt   DateTime     @updatedAt @map("updated_at")
 
-  lesson  Lesson           @relation(fields: [lessonId], references: [id], onDelete: Cascade)
-  options ExerciseOption[]
+  lesson            Lesson               @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  options           ExerciseOption[]
+  vocabularyTargets ExerciseVocabulary[]
+  grammarTargets    ExerciseGrammar[]
+  kanjiTargets      ExerciseKanji[]
+  attempts          PracticeAttempt[]
 
   @@unique([lessonId, order])
   @@index([lessonId])
@@ -293,4 +317,151 @@ model ExerciseOption {
 
   @@unique([exerciseId, order])
   @@map("exercise_options")
+}
+
+model ExerciseVocabulary {
+  id           String @id @default(cuid())
+  exerciseId   String @map("exercise_id")
+  vocabularyId String @map("vocabulary_id")
+
+  exercise   Exercise   @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+  vocabulary Vocabulary @relation(fields: [vocabularyId], references: [id], onDelete: Cascade)
+
+  @@unique([exerciseId, vocabularyId])
+  @@index([vocabularyId])
+  @@map("exercise_vocabularies")
+}
+
+model ExerciseGrammar {
+  id         String @id @default(cuid())
+  exerciseId String @map("exercise_id")
+  grammarId  String @map("grammar_id")
+
+  exercise Exercise @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+  grammar  Grammar  @relation(fields: [grammarId], references: [id], onDelete: Cascade)
+
+  @@unique([exerciseId, grammarId])
+  @@index([grammarId])
+  @@map("exercise_grammars")
+}
+
+model ExerciseKanji {
+  id         String @id @default(cuid())
+  exerciseId String @map("exercise_id")
+  kanjiId    String @map("kanji_id")
+
+  exercise Exercise @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+  kanji    Kanji    @relation(fields: [kanjiId], references: [id], onDelete: Cascade)
+
+  @@unique([exerciseId, kanjiId])
+  @@index([kanjiId])
+  @@map("exercise_kanji")
+}
+
+model PracticeAttempt {
+  id          String   @id @default(cuid())
+  userId      String   @map("user_id")
+  lessonId    String   @map("lesson_id")
+  exerciseId  String   @map("exercise_id")
+  isCorrect   Boolean  @map("is_correct")
+  answer      Json
+  timeSpentMs Int?     @map("time_spent_ms")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lesson   Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  exercise Exercise @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([exerciseId])
+  @@index([userId, createdAt])
+  @@index([lessonId])
+  @@map("practice_attempts")
+}
+
+model UserLessonProgress {
+  id          String               @id @default(cuid())
+  userId      String               @map("user_id")
+  lessonId    String               @map("lesson_id")
+  status      LessonProgressStatus @default(IN_PROGRESS)
+  progress    Float                @default(0)
+  score       Float                @default(0)
+  startedAt   DateTime             @default(now()) @map("started_at")
+  completedAt DateTime?            @map("completed_at")
+  createdAt   DateTime             @default(now()) @map("created_at")
+  updatedAt   DateTime             @updatedAt @map("updated_at")
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lesson Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, lessonId])
+  @@index([userId])
+  @@index([userId, status])
+  @@map("user_lesson_progress")
+}
+
+model UserVocabularyProgress {
+  id             String    @id @default(cuid())
+  userId         String    @map("user_id")
+  vocabularyId   String    @map("vocabulary_id")
+  correctCount   Int       @default(0) @map("correct_count")
+  incorrectCount Int       @default(0) @map("incorrect_count")
+  attemptCount   Int       @default(0) @map("attempt_count")
+  mastery        Float     @default(0)
+  lastReviewedAt DateTime? @map("last_reviewed_at")
+  nextReviewAt   DateTime? @map("next_review_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  vocabulary Vocabulary @relation(fields: [vocabularyId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, vocabularyId])
+  @@index([userId])
+  @@index([userId, nextReviewAt])
+  @@map("user_vocabulary_progress")
+}
+
+model UserGrammarProgress {
+  id             String    @id @default(cuid())
+  userId         String    @map("user_id")
+  grammarId      String    @map("grammar_id")
+  correctCount   Int       @default(0) @map("correct_count")
+  incorrectCount Int       @default(0) @map("incorrect_count")
+  attemptCount   Int       @default(0) @map("attempt_count")
+  mastery        Float     @default(0)
+  lastReviewedAt DateTime? @map("last_reviewed_at")
+  nextReviewAt   DateTime? @map("next_review_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  grammar Grammar @relation(fields: [grammarId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, grammarId])
+  @@index([userId])
+  @@index([userId, nextReviewAt])
+  @@map("user_grammar_progress")
+}
+
+model UserKanjiProgress {
+  id             String    @id @default(cuid())
+  userId         String    @map("user_id")
+  kanjiId        String    @map("kanji_id")
+  correctCount   Int       @default(0) @map("correct_count")
+  incorrectCount Int       @default(0) @map("incorrect_count")
+  attemptCount   Int       @default(0) @map("attempt_count")
+  mastery        Float     @default(0)
+  lastReviewedAt DateTime? @map("last_reviewed_at")
+  nextReviewAt   DateTime? @map("next_review_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  kanji Kanji @relation(fields: [kanjiId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, kanjiId])
+  @@index([userId])
+  @@index([userId, nextReviewAt])
+  @@map("user_kanji_progress")
 }

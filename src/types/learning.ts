@@ -1,6 +1,7 @@
 import type {
   ExerciseType,
   JapaneseLevel,
+  LessonProgressStatus,
   PartOfSpeech,
 } from "@/generated/prisma/client";
 
@@ -61,6 +62,9 @@ export type LessonSummary = {
   order: number;
   estimatedMinutes: number;
   jlptLevel: JapaneseLevel;
+  progressPercent?: number;
+  lessonStatus?: LessonProgressStatus;
+  locked?: boolean;
 };
 
 export type LessonDetail = LessonSummary & {
@@ -84,4 +88,36 @@ export type ExerciseCheckResult = {
   correctAnswer: string;
   explanation: string | null;
   points: number;
+  lessonProgress: number;
+  lessonStatus: LessonProgressStatus;
+  itemMastery: {
+    vocabulary: number | null;
+    grammar: number | null;
+    kanji: number | null;
+  };
+  nextReviewAt: string | null;
+};
+
+export type DueReviewSummary = {
+  vocabulary: number;
+  grammar: number;
+  kanji: number;
+  total: number;
+};
+
+export type DailyProgress = {
+  completed: number;
+  target: number;
+  percentage: number;
+};
+
+export type DashboardSnapshot = {
+  streakDays: number;
+  dueReviews: DueReviewSummary;
+  dailyProgress: DailyProgress;
+  continueLearning: {
+    lessonTitle: string | null;
+    lessonSlug: string | null;
+    progressPercent: number;
+  };
 };

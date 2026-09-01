@@ -137,7 +137,7 @@ async function seedLesson(lesson: LessonSeed, jlptLevelId: string, code: Japanes
     });
   }
 
-  const vocabRecords = [];
+  const vocabRecords: { id: string; word: string; meaning: string; reading: string }[] = [];
   for (const [index, vocabItem] of lesson.vocabulary.entries()) {
     const vocabulary = await upsertVocabulary(vocabItem, code);
     vocabRecords.push(vocabulary);
@@ -157,6 +157,7 @@ async function seedLesson(lesson: LessonSeed, jlptLevelId: string, code: Japanes
     });
   }
 
+  const grammarRecords: { id: string; pattern: string; meaning: string }[] = [];
   for (const [index, grammarItem] of lesson.grammar.entries()) {
     const grammar = await prisma.grammar.upsert({
       where: {
@@ -190,10 +191,15 @@ async function seedLesson(lesson: LessonSeed, jlptLevelId: string, code: Japanes
       update: { order: index + 1 },
       create: { lessonId: dbLesson.id, grammarId: grammar.id, order: index + 1 },
     });
+    grammarRecords.push({
+      id: grammar.id,
+      pattern: grammar.pattern,
+      meaning: grammar.meaning,
+    });
   }
 
   if (lesson.published && vocabRecords.length > 0) {
-    await seedExercisesForLesson(dbLesson.id, vocabRecords, lesson.grammar);
+    await seedExercisesForLesson(dbLesson.id, vocabRecords, grammarRecords);
   }
 
   return dbLesson;
@@ -202,7 +208,7 @@ async function seedLesson(lesson: LessonSeed, jlptLevelId: string, code: Japanes
 async function seedExercisesForLesson(
   lessonId: string,
   vocabulary: { id: string; word: string; meaning: string; reading: string }[],
-  grammar: LessonSeed["grammar"],
+  grammar: { id: string; pattern: string; meaning: string }[],
 ) {
   const distractors = [
     "Hospital",
@@ -219,7 +225,7 @@ async function seedExercisesForLesson(
 
   let exerciseOrder = 1;
 
-  for (const vocab of vocabulary) {
+  for (const [vocabIndex, vocab] of vocabulary.entries()) {
     if (exerciseOrder > 10) break;
 
     const exercise = await prisma.exercise.upsert({
@@ -251,9 +257,11 @@ async function seedExercisesForLesson(
     const options = [
       { text: vocab.meaning, isCorrect: true },
       ...wrongOptions.map((text) => ({ text, isCorrect: false })),
-    ].sort(() => Math.random() - 0.5);
+    ];
+    const shift = vocabIndex % options.length;
+    const rotated = options.slice(shift).concat(options.slice(0, shift));
 
-    for (const [index, option] of options.entries()) {
+    for (const [index, option] of rotated.entries()) {
       await prisma.exerciseOption.upsert({
         where: {
           exerciseId_order: { exerciseId: exercise.id, order: index + 1 },
@@ -264,6 +272,40 @@ async function seedExercisesForLesson(
           text: option.text,
           isCorrect: option.isCorrect,
           order: index + 1,
+        },
+      });
+    }
+
+    await prisma.exerciseVocabulary.upsert({
+      where: {
+        exerciseId_vocabularyId: {
+          exerciseId: exercise.id,
+          vocabularyId: vocab.id,
+        },
+      },
+      update: {},
+      create: {
+        exerciseId: exercise.id,
+        vocabularyId: vocab.id,
+      },
+    });
+
+    const vocabKanji = await prisma.vocabularyKanji.findMany({
+      where: { vocabularyId: vocab.id },
+      select: { kanjiId: true },
+    });
+    for (const link of vocabKanji) {
+      await prisma.exerciseKanji.upsert({
+        where: {
+          exerciseId_kanjiId: {
+            exerciseId: exercise.id,
+            kanjiId: link.kanjiId,
+          },
+        },
+        update: {},
+        create: {
+          exerciseId: exercise.id,
+          kanjiId: link.kanjiId,
         },
       });
     }
@@ -281,7 +323,7 @@ async function seedExercisesForLesson(
       update: {
         type: ExerciseType.FILL_BLANK,
         question: `What is the meaning of the grammar pattern "${grammarItem.pattern}"?`,
-        explanation: grammarItem.explanation,
+        explanation: `Grammar pattern ${grammarItem.pattern} means "${grammarItem.meaning}".`,
         difficulty: 2,
         points: 15,
       },
@@ -289,7 +331,7 @@ async function seedExercisesForLesson(
         lessonId,
         type: ExerciseType.FILL_BLANK,
         question: `What is the meaning of the grammar pattern "${grammarItem.pattern}"?`,
-        explanation: grammarItem.explanation,
+        explanation: `Grammar pattern ${grammarItem.pattern} means "${grammarItem.meaning}".`,
         difficulty: 2,
         points: 15,
         order: exerciseOrder,
@@ -306,6 +348,20 @@ async function seedExercisesForLesson(
         text: grammarItem.meaning,
         isCorrect: true,
         order: 1,
+      },
+    });
+
+    await prisma.exerciseGrammar.upsert({
+      where: {
+        exerciseId_grammarId: {
+          exerciseId: exercise.id,
+          grammarId: grammarItem.id,
+        },
+      },
+      update: {},
+      create: {
+        exerciseId: exercise.id,
+        grammarId: grammarItem.id,
       },
     });
 

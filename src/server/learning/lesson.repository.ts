@@ -43,6 +43,56 @@ export async function findPublishedLessonsByLevel(): Promise<JlptLevelWithLesson
   }));
 }
 
+export async function findPublishedLessonsByLevelForUser(userId: string): Promise<JlptLevelWithLessons[]> {
+  const levels = await prisma.jlptLevel.findMany({
+    orderBy: { order: "asc" },
+    include: {
+      lessons: {
+        where: { published: true },
+        orderBy: { order: "asc" },
+        select: {
+          id: true,
+          title: true,
+          slug: true,
+          description: true,
+          order: true,
+          estimatedMinutes: true,
+          jlptLevel: { select: { code: true } },
+          progresses: {
+            where: { userId },
+            select: {
+              progress: true,
+              status: true,
+            },
+            take: 1,
+          },
+        },
+      },
+    },
+  });
+
+  return levels.map((level) => ({
+    id: level.id,
+    code: level.code,
+    name: level.name,
+    description: level.description,
+    order: level.order,
+    lessons: level.lessons.map(
+      (lesson): LessonSummary => ({
+        id: lesson.id,
+        title: lesson.title,
+        slug: lesson.slug,
+        description: lesson.description,
+        order: lesson.order,
+        estimatedMinutes: lesson.estimatedMinutes,
+        jlptLevel: lesson.jlptLevel.code,
+        progressPercent: lesson.progresses[0] ? Math.round(lesson.progresses[0].progress) : 0,
+        lessonStatus: lesson.progresses[0]?.status,
+      }),
+    ),
+  }));
+}
+
 export async function findPublishedLessonBySlug(slug: string) {
   return prisma.lesson.findFirst({
     where: { slug, published: true },

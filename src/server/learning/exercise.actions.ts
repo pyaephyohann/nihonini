@@ -1,11 +1,14 @@
 "use server";
 
-import { checkExerciseAnswer } from "@/server/learning/exercise.service";
+import { requireAuth } from "@/server/auth/require-auth";
+import { submitExercise } from "@/server/learning/practice.service";
 
-export async function checkExerciseAnswerAction(input: {
+export async function submitExerciseAnswerAction(input: {
   exerciseId: string;
   selectedOptionId?: string;
   textAnswer?: string;
+  timeSpentMs?: number;
 }) {
-  return checkExerciseAnswer(input);
+  const session = await requireAuth();
+  return submitExercise({ userId: session.user.id, payload: input });
 }

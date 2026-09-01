@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { requireAuth } from "@/server/auth/require-auth";
-import { getPublishedLessonsCatalog } from "@/server/learning/lesson.service";
+import { getDueReviewSummary } from "@/server/learning/daily-learning.service";
+import { getUserLessonsCatalog } from "@/server/learning/lesson.service";
 import { LessonList } from "@/components/learning/lesson-list";
 import { Button } from "@/components/ui/button";
 
@@ -10,8 +11,11 @@ export const metadata: Metadata = {
 };
 
 export default async function LearnPage() {
-  await requireAuth();
-  const levels = await getPublishedLessonsCatalog();
+  const session = await requireAuth();
+  const [levels, dueReviews] = await Promise.all([
+    getUserLessonsCatalog(session.user.id),
+    getDueReviewSummary(session.user.id),
+  ]);
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6 lg:px-8">
@@ -25,6 +29,10 @@ export default async function LearnPage() {
         <p className="mt-3 text-muted-foreground">
           Explore demo JLPT-aligned lessons. Content is database-driven and will
           expand over time — this is not an official JLPT curriculum.
+        </p>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Due reviews: {dueReviews.total} (Vocab {dueReviews.vocabulary}, Grammar{" "}
+          {dueReviews.grammar}, Kanji {dueReviews.kanji})
         </p>
       </div>
 

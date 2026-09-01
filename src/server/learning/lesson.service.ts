@@ -4,10 +4,34 @@ import type { LessonDetail } from "@/types/learning";
 import {
   findPublishedLessonBySlug,
   findPublishedLessonsByLevel,
+  findPublishedLessonsByLevelForUser,
 } from "@/server/learning/lesson.repository";
 
 export async function getPublishedLessonsCatalog() {
   return findPublishedLessonsByLevel();
+}
+
+export async function getUserLessonsCatalog(userId: string) {
+  const levels = await findPublishedLessonsByLevelForUser(userId);
+
+  return levels.map((level) => {
+    let previousCompleted = true;
+    const lessons = level.lessons.map((lesson, index) => {
+      const locked = index === 0 ? false : !previousCompleted;
+      const completed = lesson.lessonStatus === "COMPLETED";
+      previousCompleted = completed;
+
+      return {
+        ...lesson,
+        locked,
+      };
+    });
+
+    return {
+      ...level,
+      lessons,
+    };
+  });
 }
 
 export async function getLessonBySlug(slug: string): Promise<LessonDetail | null> {

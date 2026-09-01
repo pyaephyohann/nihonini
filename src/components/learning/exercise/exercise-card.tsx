@@ -5,25 +5,28 @@ import { CheckCircle2, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { checkExerciseAnswerAction } from "@/server/learning/exercise.actions";
-import type { ClientExercise } from "@/types/learning";
+import type { ClientExercise, ExerciseCheckResult } from "@/types/learning";
 
 type ExerciseCardProps = {
   exercise: ClientExercise;
   index: number;
   total: number;
+  onSubmit: (input: {
+    exerciseId: string;
+    selectedOptionId?: string;
+    textAnswer?: string;
+    timeSpentMs?: number;
+  }) => Promise<ExerciseCheckResult | { error: string }>;
+  onContinue: (result: ExerciseCheckResult) => void;
 };
 
-export function ExerciseCard({ exercise, index, total }: ExerciseCardProps) {
+export function ExerciseCard({ exercise, index, total, onSubmit, onContinue }: ExerciseCardProps) {
   const [selectedOptionId, setSelectedOptionId] = useState<string | null>(null);
   const [textAnswer, setTextAnswer] = useState("");
-  const [result, setResult] = useState<{
-    correct: boolean;
-    correctAnswer: string;
-    explanation: string | null;
-  } | null>(null);
+  const [result, setResult] = useState<ExerciseCheckResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const [startedAt] = useState(() => Date.now());
 
   const isChoiceType =
     exercise.type === "MULTIPLE_CHOICE" ||
@@ -36,10 +39,11 @@ export function ExerciseCard({ exercise, index, total }: ExerciseCardProps) {
   const handleCheck = () => {
     setError(null);
     startTransition(async () => {
-      const response = await checkExerciseAnswerAction({
+      const response = await onSubmit({
         exerciseId: exercise.id,
         selectedOptionId: selectedOptionId ?? undefined,
         textAnswer: textAnswer || undefined,
+        timeSpentMs: Date.now() - startedAt,
       });
 
       if ("error" in response) {
@@ -52,10 +56,9 @@ export function ExerciseCard({ exercise, index, total }: ExerciseCardProps) {
   };
 
   const handleContinue = () => {
-    setSelectedOptionId(null);
-    setTextAnswer("");
-    setResult(null);
-    setError(null);
+    if (result) {
+      onContinue(result);
+    }
   };
 
   return (
@@ -180,6 +183,15 @@ export function ExerciseCard({ exercise, index, total }: ExerciseCardProps) {
               {result.explanation && (
                 <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
                   {result.explanation}
+                </p>
+              )}
+              <p className="mt-2 text-xs text-muted-foreground">
+                Lesson progress: {result.lessonProgress}% · Status:{" "}
+                {result.lessonStatus === "COMPLETED" ? "Completed" : "In progress"}
+              </p>
+              {result.nextReviewAt && (
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Next review: {new Date(result.nextReviewAt).toLocaleString()}
                 </p>
               )}
             </div>
