@@ -1,5 +1,7 @@
 import "server-only";
 
+import { MASTERED_MASTERY_THRESHOLD } from "@/server/learning/mastery";
+
 type SchedulerInput = {
   correct: boolean;
   correctCount: number;
@@ -29,6 +31,6 @@ export function calculateNextReviewAt({
   if (correctCount <= 3) return addDays(now, mastery >= 0.5 ? 3 : 1);
   if (correctCount <= 5) return addDays(now, mastery >= 0.65 ? 7 : 3);
   if (correctCount <= 8) return addDays(now, mastery >= 0.75 ? 14 : 7);
-  return addDays(now, mastery >= 0.85 ? 30 : 14);
+  return addDays(now, mastery >= MASTERED_MASTERY_THRESHOLD ? 30 : 14);
 }
 

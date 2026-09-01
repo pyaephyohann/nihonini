@@ -10,10 +10,8 @@ export const metadata: Metadata = {
 
 export default async function MockExamsPage() {
   const session = await requireAuth();
-  const [catalog, history] = await Promise.all([
-    getMockExamCatalog(session.user.id),
-    getMockExamHistory(session.user.id),
-  ]);
+  const catalog = await getMockExamCatalog(session.user.id);
+  const history = await getMockExamHistory(session.user.id);
 
   const hasExams = catalog.some((level) => level.exams.length > 0);
 
