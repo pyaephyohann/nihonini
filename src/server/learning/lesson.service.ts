@@ -1,5 +1,6 @@
 import "server-only";
 
+import { cache } from "react";
 import type { LessonDetail } from "@/types/learning";
 import {
   findPublishedLessonBySlug,
@@ -27,7 +28,7 @@ export async function getUserLessonsCatalog(userId: string) {
   }));
 }
 
-export async function getLessonBySlug(slug: string): Promise<LessonDetail | null> {
+export const getLessonBySlug = cache(async (slug: string): Promise<LessonDetail | null> => {
   const lesson = await findPublishedLessonBySlug(slug);
 
   if (!lesson) {
@@ -86,4 +87,4 @@ export async function getLessonBySlug(slug: string): Promise<LessonDetail | null
       options: exercise.options,
     })),
   };
-}
+});
