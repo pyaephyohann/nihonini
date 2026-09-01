@@ -1,0 +1,7 @@
+export const MAX_HISTORY_MESSAGES = 20;
+export const MAX_HISTORY_TURNS = 10;
+export const MAX_HISTORY_CHARS = 6000;
+export const CONVERSATION_TITLE_MAX = 48;
+export const DUPLICATE_MESSAGE_WINDOW_MS = 3000;
+export const RATE_LIMIT_PER_MINUTE = 10;
+export const RATE_LIMIT_PER_DAY = 100;

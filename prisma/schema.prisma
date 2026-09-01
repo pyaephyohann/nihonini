@@ -72,6 +72,11 @@ enum MockExamSessionStatus {
   EXPIRED
 }
 
+enum TutorMessageRole {
+  USER
+  ASSISTANT
+}
+
 model User {
   id            String    @id @default(cuid())
   name          String?
@@ -96,6 +101,7 @@ model User {
   readingSubmissions   ReadingSubmission[]
   listeningSubmissions ListeningSubmission[]
   mockExamSessions     UserMockExamSession[]
+  tutorConversations   TutorConversation[]
 
   @@map("users")
 }
@@ -878,4 +884,32 @@ model UserMockExamSectionResult {
 
   @@unique([sessionId, sectionId])
   @@map("user_mock_exam_section_results")
+}
+
+model TutorConversation {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  title     String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user     User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages TutorMessage[]
+
+  @@index([userId, updatedAt])
+  @@map("tutor_conversations")
+}
+
+model TutorMessage {
+  id             String           @id @default(cuid())
+  conversationId String           @map("conversation_id")
+  role           TutorMessageRole
+  content        String           @db.Text
+  responseJson   Json?            @map("response_json")
+  createdAt      DateTime         @default(now()) @map("created_at")
+
+  conversation TutorConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId, createdAt])
+  @@map("tutor_messages")
 }
