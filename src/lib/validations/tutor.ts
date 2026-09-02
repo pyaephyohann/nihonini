@@ -7,6 +7,7 @@ export const tutorResponseTypeValues = [
   "COMPARISON",
   "EXAMPLE",
   "PRACTICE",
+  "RECOMMENDATION",
   "STUDY_SUGGESTION",
   "CLARIFICATION",
   "REFUSAL",
@@ -26,7 +27,20 @@ export const tutorSuggestedActionTypeValues = [
   "OPEN_KANJI",
   "PRACTICE_WEAK_SKILL",
   "VIEW_PROGRESS",
+  "OPEN_MOCK_EXAM",
 ] as const;
+
+export const tutorRecommendationActivityTypeValues = [
+  "LESSON",
+  "PRACTICE",
+  "REVIEW",
+  "READING",
+  "LISTENING",
+  "MOCK_EXAM",
+  "TUTOR_PRACTICE",
+] as const;
+
+export const tutorRecommendationPriorityValues = ["HIGH", "MEDIUM", "LOW"] as const;
 
 export const tutorMistakeCategoryValues = [
   "GRAMMAR",
@@ -58,6 +72,9 @@ export type TutorMistakeCategory = (typeof tutorMistakeCategoryValues)[number];
 export type TutorPracticeQuestionType = (typeof tutorPracticeQuestionTypeValues)[number];
 export type TutorPracticePhase = (typeof tutorPracticePhaseValues)[number];
 export type TutorPracticeDifficulty = (typeof tutorPracticeDifficultyValues)[number];
+export type TutorRecommendationActivityType =
+  (typeof tutorRecommendationActivityTypeValues)[number];
+export type TutorRecommendationPriority = (typeof tutorRecommendationPriorityValues)[number];
 
 const MAX_MESSAGE_CHARS = 2000;
 const MAX_ANSWER_CHARS = 4000;
@@ -233,6 +250,28 @@ export const legacyPracticeResponseSchema = z
   })
   .strict();
 
+const recommendationItemSchema = z
+  .object({
+    id: z.string().min(1).max(100),
+    type: z.enum(tutorRecommendationActivityTypeValues),
+    title: z.string().min(1).max(200),
+    reason: z.string().min(1).max(MAX_EXPLANATION_CHARS),
+    priority: z.enum(tutorRecommendationPriorityValues),
+    estimatedMinutes: z.number().int().min(1).max(180),
+    targetSkill: z.string().min(1).max(50).optional(),
+    contentId: z.string().min(1).max(100).optional(),
+    suggestedAction: suggestedActionSchema.optional(),
+  })
+  .strict();
+
+const recommendationResponseSchema = z
+  .object({
+    type: z.literal("RECOMMENDATION"),
+    answer: z.string().min(1).max(MAX_ANSWER_CHARS),
+    recommendations: z.array(recommendationItemSchema).min(1).max(3),
+  })
+  .strict();
+
 const studySuggestionResponseSchema = z
   .object({
     type: z.literal("STUDY_SUGGESTION"),
@@ -264,6 +303,7 @@ export const tutorResponseSchema = z.discriminatedUnion("type", [
   comparisonResponseSchema,
   exampleResponseSchema,
   practiceResponseSchema,
+  recommendationResponseSchema,
   studySuggestionResponseSchema,
   clarificationResponseSchema,
   refusalResponseSchema,

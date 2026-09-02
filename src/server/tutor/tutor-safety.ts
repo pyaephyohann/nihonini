@@ -9,6 +9,7 @@ import {
 } from "@/lib/validations/tutor";
 import { toClientSafeTutorResponse } from "@/lib/tutor/response";
 import type { TutorGroundedContent, TutorResponse } from "@/types/tutor";
+import type { TutorRecommendationTrustedCandidate } from "@/server/tutor/recommendation/tutor-recommendation.types";
 
 const MAX_RAW_OUTPUT_CHARS = 12_000;
 
@@ -113,6 +114,51 @@ export function filterRelatedContentToGrounding(
     ...response,
     relatedContent: filtered.length > 0 ? filtered : undefined,
   } as TutorResponseInput | LegacyTutorResponseInput;
+}
+
+export function filterRecommendationsToTrustedCandidates(
+  response: TutorResponseInput | LegacyTutorResponseInput,
+  trustedCandidates: TutorRecommendationTrustedCandidate[],
+): TutorResponseInput | LegacyTutorResponseInput {
+  if (response.type !== "RECOMMENDATION") {
+    return response;
+  }
+
+  if (trustedCandidates.length === 0) {
+    return buildFallbackRefusalResponse();
+  }
+
+  const trustedById = new Map(trustedCandidates.map((candidate) => [candidate.id, candidate]));
+
+  const matched = response.recommendations
+    .filter((item) => trustedById.has(item.id))
+    .map((item) => {
+      const trusted = trustedById.get(item.id)!;
+      return {
+        id: trusted.id,
+        type: trusted.type,
+        title: trusted.title,
+        reason: trusted.reason,
+        priority: trusted.priority,
+        estimatedMinutes: trusted.estimatedMinutes,
+        targetSkill: trusted.targetSkill,
+        contentId: trusted.contentId,
+        suggestedAction: trusted.suggestedAction,
+      };
+    });
+
+  const recommendations =
+    matched.length > 0
+      ? matched.slice(0, 3)
+      : trustedCandidates.slice(0, 3).map(({ score: _score, ...candidate }) => {
+          void _score;
+          return candidate;
+        });
+
+  return {
+    ...response,
+    recommendations,
+  };
 }
 
 export function prepareTutorResponseForClient(

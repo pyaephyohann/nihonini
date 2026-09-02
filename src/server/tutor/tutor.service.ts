@@ -2,7 +2,7 @@ import "server-only";
 
 import type { Prisma } from "@/generated/prisma/client";
 import type { TutorResponseInput } from "@/lib/validations/tutor";
-import { tutorRequestSchema } from "@/lib/validations/tutor";
+import { tutorRequestSchema, type LegacyTutorResponseInput } from "@/lib/validations/tutor";
 import { getTutorAiProvider } from "@/server/tutor/ai/openai-compatible.provider";
 import {
   deriveConversationTitle,
@@ -16,6 +16,7 @@ import { buildTutorLearnerContext } from "@/server/tutor/tutor-context.service";
 import { buildPromptHistory } from "@/server/tutor/tutor-history";
 import { isTutorProviderConfigured, tutorConfig } from "@/server/tutor/tutor-config";
 import { buildTutorPrompt } from "@/server/tutor/tutor-prompt";
+import { buildTutorRecommendationContext } from "@/server/tutor/recommendation/tutor-recommendation.service";
 import {
   buildGuidedPracticeContext,
   buildStalePracticeClarification,
@@ -40,6 +41,7 @@ import {
   buildFallbackRefusalResponse,
   extractJsonFromModelText,
   filterRelatedContentToGrounding,
+  filterRecommendationsToTrustedCandidates,
   prepareTutorResponseForClient,
   sanitizeTutorUserMessage,
   tutorUserFacingErrors,
@@ -196,6 +198,11 @@ export async function sendTutorMessage(input: {
         })
       : undefined;
 
+  const recommendationBundle =
+    practiceState.kind === "no_active_practice"
+      ? await buildTutorRecommendationContext(input.userId, userMessage)
+      : null;
+
   const jlptLevel = learnerContext.profile.japaneseLevel;
   const grounding = await buildTutorGrounding({
     message: userMessage,
@@ -209,6 +216,7 @@ export async function sendTutorMessage(input: {
     history,
     userMessage,
     guidedPracticeContext,
+    recommendationContext: recommendationBundle?.context,
   });
 
   const provider = input.provider ?? getTutorAiProvider();
@@ -238,7 +246,20 @@ export async function sendTutorMessage(input: {
   }
 
   const filtered = filterRelatedContentToGrounding(validated, grounding);
-  const enforced = enforcePracticeResponseRules(filtered);
+
+  let afterRecommendation: TutorResponseInput | LegacyTutorResponseInput = filtered;
+  if (filtered.type === "RECOMMENDATION") {
+    if (recommendationBundle) {
+      afterRecommendation = filterRecommendationsToTrustedCandidates(
+        filtered,
+        recommendationBundle.candidates,
+      );
+    } else {
+      afterRecommendation = buildFallbackRefusalResponse();
+    }
+  }
+
+  const enforced = enforcePracticeResponseRules(afterRecommendation);
   const fullResponse = enforced ?? buildFallbackRefusalResponse();
 
   return persistAssistantAndBuildResult({

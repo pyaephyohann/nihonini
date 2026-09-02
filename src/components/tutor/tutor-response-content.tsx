@@ -1,5 +1,6 @@
 "use client";
 
+import { TutorRecommendationCards } from "@/components/tutor/tutor-recommendation-cards";
 import { TutorSuggestedAction } from "@/components/tutor/tutor-suggested-action";
 import type { TutorResponse } from "@/types/tutor";
 
@@ -122,6 +123,10 @@ export function TutorResponseContent({ response }: TutorResponseContentProps) {
             </div>
           ))}
         </div>
+      )}
+
+      {response.type === "RECOMMENDATION" && (
+        <TutorRecommendationCards recommendations={response.recommendations} />
       )}
 
       {response.type === "PRACTICE" && (
