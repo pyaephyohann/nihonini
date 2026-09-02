@@ -2,6 +2,8 @@ import type { JapaneseLevel, LearningGoal } from "@/generated/prisma/client";
 import type {
   LegacyTutorResponseInput,
   TutorMistakeCategory,
+  TutorPracticeDifficulty,
+  TutorPracticePhase,
   TutorPracticeQuestionType,
   TutorResponseInput,
   TutorResponseType,
@@ -98,15 +100,27 @@ export type TutorComparisonDetail = {
 };
 
 export type TutorPracticePayload = {
+  phase: TutorPracticePhase;
+  difficulty: TutorPracticeDifficulty;
   question: string;
   questionType: TutorPracticeQuestionType;
   choices?: string[];
   hint?: string;
   explanation?: string;
+  evaluation?: {
+    isCorrect: boolean;
+    feedback?: string;
+  };
+  sessionSummary?: string;
 };
 
-/** Client-safe tutor response (M9.3 discriminated union + legacy shapes). */
-export type TutorResponse = TutorResponseInput | LegacyTutorResponseInput;
+/** Client-safe tutor response — practice payloads omit expectedAnswer. */
+export type TutorResponse =
+  | Exclude<TutorResponseInput, { type: "PRACTICE" }>
+  | (Extract<TutorResponseInput, { type: "PRACTICE" }> & {
+      practice: TutorPracticePayload;
+    })
+  | LegacyTutorResponseInput;
 
 export type { TutorResponseType, TutorSuggestedActionType };
 

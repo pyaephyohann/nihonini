@@ -1,6 +1,6 @@
 import type { LegacyTutorResponseInput, TutorResponseInput } from "@/lib/validations/tutor";
 
-/** Strip internal practice fields before sending to the client or persisting. */
+/** Strip internal practice fields before sending to the client. */
 export function toClientSafeTutorResponse(
   response: TutorResponseInput | LegacyTutorResponseInput,
 ): TutorResponseInput | LegacyTutorResponseInput {
@@ -32,5 +32,8 @@ export function hasExposedPracticeAnswerKey(value: unknown): boolean {
     return false;
   }
 
-  return "expectedAnswer" in practice && (practice as { expectedAnswer?: string }).expectedAnswer !== undefined;
+  return (
+    "expectedAnswer" in practice &&
+    (practice as { expectedAnswer?: string }).expectedAnswer !== undefined
+  );
 }

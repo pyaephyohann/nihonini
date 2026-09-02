@@ -1,5 +1,7 @@
 import "server-only";
 
+import type { Prisma } from "@/generated/prisma/client";
+import type { TutorResponseInput } from "@/lib/validations/tutor";
 import { tutorRequestSchema } from "@/lib/validations/tutor";
 import { getTutorAiProvider } from "@/server/tutor/ai/openai-compatible.provider";
 import {
@@ -15,11 +17,19 @@ import { buildPromptHistory } from "@/server/tutor/tutor-history";
 import { isTutorProviderConfigured, tutorConfig } from "@/server/tutor/tutor-config";
 import { buildTutorPrompt } from "@/server/tutor/tutor-prompt";
 import {
+  buildGuidedPracticeContext,
+  buildStalePracticeClarification,
+  detectGuidedPracticeState,
+  enforcePracticeResponseRules,
+  evaluatePracticeAnswer,
+} from "@/server/tutor/tutor-practice.service";
+import {
   createAssistantMessage,
   createConversation,
   createUserMessage,
   findRecentDuplicateUserMessage,
   loadRecentMessagesForPrompt,
+  loadRecentMessagesWithJson,
   touchConversation,
 } from "@/server/tutor/tutor.repository";
 import {
@@ -30,13 +40,53 @@ import {
   buildFallbackRefusalResponse,
   extractJsonFromModelText,
   filterRelatedContentToGrounding,
-  prepareTutorResponseForStorageAndClient,
+  prepareTutorResponseForClient,
   sanitizeTutorUserMessage,
   tutorUserFacingErrors,
   validateTutorResponsePayload,
 } from "@/server/tutor/tutor-safety";
-import type { SendTutorMessageResult, TutorMessageDto } from "@/types/tutor";
+import type { SendTutorMessageResult, TutorMessageDto, TutorResponse } from "@/types/tutor";
 import type { TutorAiProvider } from "@/server/tutor/ai/provider";
+
+async function persistAssistantAndBuildResult(input: {
+  conversationId: string;
+  userId: string;
+  savedUserMessage: { id: string; content: string; createdAt: Date };
+  fullResponse: TutorResponseInput | import("@/lib/validations/tutor").LegacyTutorResponseInput;
+}): Promise<SendTutorMessageResult> {
+  const clientResponse = prepareTutorResponseForClient(input.fullResponse) as TutorResponse;
+
+  const savedAssistantMessage = await createAssistantMessage(
+    input.conversationId,
+    input.fullResponse.answer,
+    input.fullResponse as unknown as Prisma.InputJsonValue,
+  );
+  await touchConversation(input.conversationId, input.userId);
+
+  const userMessageDto: TutorMessageDto = {
+    id: input.savedUserMessage.id,
+    role: "USER",
+    content: input.savedUserMessage.content,
+    createdAt: input.savedUserMessage.createdAt.toISOString(),
+  };
+
+  const assistantMessageDto: TutorMessageDto = {
+    id: savedAssistantMessage.id,
+    role: "ASSISTANT",
+    content: savedAssistantMessage.content,
+    createdAt: savedAssistantMessage.createdAt.toISOString(),
+    response: clientResponse,
+  };
+
+  return {
+    ...clientResponse,
+    conversationId: input.conversationId,
+    userMessageId: input.savedUserMessage.id,
+    assistantMessageId: savedAssistantMessage.id,
+    userMessage: userMessageDto,
+    assistantMessage: assistantMessageDto,
+  };
+}
 
 export async function sendTutorMessage(input: {
   userId: string;
@@ -94,6 +144,15 @@ export async function sendTutorMessage(input: {
   const savedUserMessage = await createUserMessage(conversationId, userMessage);
   await touchConversation(conversationId, input.userId);
 
+  const messagesWithJson = await loadRecentMessagesWithJson(conversationId, input.userId);
+  if (!messagesWithJson) {
+    return {
+      error: "Conversation not found.",
+      conversationId,
+      userMessageId: savedUserMessage.id,
+    };
+  }
+
   const historyRows = await loadRecentMessagesForPrompt(
     conversationId,
     input.userId,
@@ -116,6 +175,27 @@ export async function sendTutorMessage(input: {
     };
   }
 
+  const practiceState = detectGuidedPracticeState(messagesWithJson, savedUserMessage.id);
+
+  if (practiceState.kind === "stale_answer_attempt") {
+    const clarification = buildStalePracticeClarification(practiceState.reason);
+    return persistAssistantAndBuildResult({
+      conversationId,
+      userId: input.userId,
+      savedUserMessage,
+      fullResponse: clarification,
+    });
+  }
+
+  const guidedPracticeContext =
+    practiceState.kind === "awaiting_answer"
+      ? buildGuidedPracticeContext({
+          active: practiceState.active,
+          evaluation: evaluatePracticeAnswer(practiceState.active, userMessage),
+          learnerContext,
+        })
+      : undefined;
+
   const jlptLevel = learnerContext.profile.japaneseLevel;
   const grounding = await buildTutorGrounding({
     message: userMessage,
@@ -128,6 +208,7 @@ export async function sendTutorMessage(input: {
     grounding,
     history,
     userMessage,
+    guidedPracticeContext,
   });
 
   const provider = input.provider ?? getTutorAiProvider();
@@ -157,38 +238,15 @@ export async function sendTutorMessage(input: {
   }
 
   const filtered = filterRelatedContentToGrounding(validated, grounding);
-  const safeResponse = prepareTutorResponseForStorageAndClient(filtered);
+  const enforced = enforcePracticeResponseRules(filtered);
+  const fullResponse = enforced ?? buildFallbackRefusalResponse();
 
-  const savedAssistantMessage = await createAssistantMessage(
+  return persistAssistantAndBuildResult({
     conversationId,
-    safeResponse.answer,
-    safeResponse,
-  );
-  await touchConversation(conversationId, input.userId);
-
-  const userMessageDto: TutorMessageDto = {
-    id: savedUserMessage.id,
-    role: "USER",
-    content: savedUserMessage.content,
-    createdAt: savedUserMessage.createdAt.toISOString(),
-  };
-
-  const assistantMessageDto: TutorMessageDto = {
-    id: savedAssistantMessage.id,
-    role: "ASSISTANT",
-    content: savedAssistantMessage.content,
-    createdAt: savedAssistantMessage.createdAt.toISOString(),
-    response: safeResponse,
-  };
-
-  return {
-    ...safeResponse,
-    conversationId,
-    userMessageId: savedUserMessage.id,
-    assistantMessageId: savedAssistantMessage.id,
-    userMessage: userMessageDto,
-    assistantMessage: assistantMessageDto,
-  };
+    userId: input.userId,
+    savedUserMessage,
+    fullResponse,
+  });
 }
 
 export async function buildTutorDebugSnapshot(input: {

@@ -1,7 +1,7 @@
 import "server-only";
 
 import {
-  prepareTutorResponseForStorageAndClient,
+  prepareTutorResponseForClient,
   validateTutorResponsePayload,
 } from "@/server/tutor/tutor-safety";
 import type {
@@ -41,7 +41,7 @@ function mapMessage(row: {
 
   return {
     ...base,
-    response: prepareTutorResponseForStorageAndClient(parsed),
+    response: prepareTutorResponseForClient(parsed),
   };
 }
 

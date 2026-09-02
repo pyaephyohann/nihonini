@@ -1,6 +1,7 @@
 import "server-only";
 
 import {
+  legacyPracticeResponseSchema,
   legacyTutorResponseSchema,
   tutorResponseSchema,
   type LegacyTutorResponseInput,
@@ -60,6 +61,24 @@ export function validateTutorResponsePayload(
     return legacy.data;
   }
 
+  const legacyPractice = legacyPracticeResponseSchema.safeParse(payload);
+  if (legacyPractice.success) {
+    return {
+      type: "PRACTICE",
+      answer: legacyPractice.data.answer,
+      practice: {
+        phase: "QUESTION",
+        difficulty: "MEDIUM",
+        question: legacyPractice.data.practice.question,
+        questionType: legacyPractice.data.practice.questionType,
+        choices: legacyPractice.data.practice.choices,
+        hint: legacyPractice.data.practice.hint,
+        explanation: legacyPractice.data.practice.explanation,
+        expectedAnswer: legacyPractice.data.practice.expectedAnswer,
+      },
+    };
+  }
+
   return null;
 }
 
@@ -96,10 +115,17 @@ export function filterRelatedContentToGrounding(
   } as TutorResponseInput | LegacyTutorResponseInput;
 }
 
-export function prepareTutorResponseForStorageAndClient(
+export function prepareTutorResponseForClient(
   response: TutorResponseInput | LegacyTutorResponseInput,
 ): TutorResponse {
   return toClientSafeTutorResponse(response) as TutorResponse;
+}
+
+/** @deprecated Use prepareTutorResponseForClient for client payloads. */
+export function prepareTutorResponseForStorageAndClient(
+  response: TutorResponseInput | LegacyTutorResponseInput,
+): TutorResponse {
+  return prepareTutorResponseForClient(response);
 }
 
 export function buildFallbackRefusalResponse(): TutorResponseInput {

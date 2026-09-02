@@ -128,26 +128,69 @@ export function TutorResponseContent({ response }: TutorResponseContentProps) {
         <div className="rounded-lg bg-background/60 p-3">
           <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
             Tutor practice · {response.practice.questionType.replaceAll("_", " ")}
+            {"phase" in response.practice && response.practice.phase
+              ? ` · ${response.practice.phase}`
+              : ""}
+            {"difficulty" in response.practice && response.practice.difficulty
+              ? ` · ${response.practice.difficulty}`
+              : ""}
           </p>
-          <p className="font-japanese mt-2 whitespace-pre-wrap text-foreground">
-            {response.practice.question}
-          </p>
-          {response.practice.choices && response.practice.choices.length > 0 && (
-            <ul className="mt-3 space-y-1">
-              {response.practice.choices.map((choice, index) => (
-                <li key={`${choice}-${index}`} className="font-japanese text-foreground">
-                  {String.fromCharCode(65 + index)}. {choice}
-                </li>
-              ))}
-            </ul>
-          )}
-          {response.practice.hint && (
-            <p className="mt-2 text-xs text-muted-foreground">Hint: {response.practice.hint}</p>
-          )}
-          {response.practice.explanation && (
-            <p className="mt-2 whitespace-pre-wrap text-muted-foreground">
-              {response.practice.explanation}
-            </p>
+
+          {response.practice.phase === "COMPLETION" ? (
+            <>
+              <p className="mt-2 whitespace-pre-wrap text-foreground">{response.answer}</p>
+              {response.practice.sessionSummary && (
+                <p className="mt-2 whitespace-pre-wrap text-muted-foreground">
+                  {response.practice.sessionSummary}
+                </p>
+              )}
+            </>
+          ) : response.practice.phase === "EVALUATION" ? (
+            <>
+              {response.practice.evaluation && (
+                <p
+                  className={`mt-2 font-medium ${
+                    response.practice.evaluation.isCorrect ? "text-green-600" : "text-amber-600"
+                  }`}
+                >
+                  {response.practice.evaluation.isCorrect ? "Correct" : "Not quite"}
+                </p>
+              )}
+              <p className="mt-2 whitespace-pre-wrap text-foreground">{response.answer}</p>
+              {response.practice.evaluation?.feedback && (
+                <p className="mt-2 whitespace-pre-wrap text-muted-foreground">
+                  {response.practice.evaluation.feedback}
+                </p>
+              )}
+              {response.practice.explanation && (
+                <p className="mt-2 whitespace-pre-wrap text-muted-foreground">
+                  {response.practice.explanation}
+                </p>
+              )}
+            </>
+          ) : (
+            <>
+              <p className="font-japanese mt-2 whitespace-pre-wrap text-foreground">
+                {response.practice.question}
+              </p>
+              {response.practice.choices && response.practice.choices.length > 0 && (
+                <ul className="mt-3 space-y-1">
+                  {response.practice.choices.map((choice, index) => (
+                    <li key={`${choice}-${index}`} className="font-japanese text-foreground">
+                      {String.fromCharCode(65 + index)}. {choice}
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {response.practice.hint && (
+                <p className="mt-2 text-xs text-muted-foreground">Hint: {response.practice.hint}</p>
+              )}
+              {response.practice.explanation && (
+                <p className="mt-2 whitespace-pre-wrap text-muted-foreground">
+                  {response.practice.explanation}
+                </p>
+              )}
+            </>
           )}
         </div>
       )}

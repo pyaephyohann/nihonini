@@ -48,10 +48,16 @@ export const tutorPracticeQuestionTypeValues = [
   "FREE_RESPONSE",
 ] as const;
 
+export const tutorPracticePhaseValues = ["QUESTION", "EVALUATION", "COMPLETION"] as const;
+
+export const tutorPracticeDifficultyValues = ["EASY", "MEDIUM", "HARD"] as const;
+
 export type TutorResponseType = (typeof tutorResponseTypeValues)[number];
 export type TutorSuggestedActionType = (typeof tutorSuggestedActionTypeValues)[number];
 export type TutorMistakeCategory = (typeof tutorMistakeCategoryValues)[number];
 export type TutorPracticeQuestionType = (typeof tutorPracticeQuestionTypeValues)[number];
+export type TutorPracticePhase = (typeof tutorPracticePhaseValues)[number];
+export type TutorPracticeDifficulty = (typeof tutorPracticeDifficultyValues)[number];
 
 const MAX_MESSAGE_CHARS = 2000;
 const MAX_ANSWER_CHARS = 4000;
@@ -180,7 +186,37 @@ const exampleResponseSchema = z
   })
   .strict();
 
+const practicePayloadSchema = z
+  .object({
+    phase: z.enum(tutorPracticePhaseValues),
+    difficulty: z.enum(tutorPracticeDifficultyValues),
+    question: z.string().min(1).max(MAX_PRACTICE_QUESTION),
+    questionType: z.enum(tutorPracticeQuestionTypeValues),
+    choices: z.array(z.string().min(1).max(200)).max(6).optional(),
+    hint: z.string().max(MAX_SHORT_TEXT).optional(),
+    explanation: z.string().max(MAX_EXPLANATION_CHARS).optional(),
+    expectedAnswer: z.string().max(MAX_SHORT_TEXT).optional(),
+    evaluation: z
+      .object({
+        isCorrect: z.boolean(),
+        feedback: z.string().max(MAX_EXPLANATION_CHARS).optional(),
+      })
+      .strict()
+      .optional(),
+    sessionSummary: z.string().max(MAX_EXPLANATION_CHARS).optional(),
+  })
+  .strict();
+
 const practiceResponseSchema = z
+  .object({
+    type: z.literal("PRACTICE"),
+    answer: z.string().min(1).max(MAX_ANSWER_CHARS),
+    practice: practicePayloadSchema,
+  })
+  .strict();
+
+/** Legacy M9.3 practice shape without phase/difficulty — normalized on parse. */
+export const legacyPracticeResponseSchema = z
   .object({
     type: z.literal("PRACTICE"),
     answer: z.string().min(1).max(MAX_ANSWER_CHARS),

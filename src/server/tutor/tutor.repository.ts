@@ -94,6 +94,31 @@ export async function deleteConversationForUser(conversationId: string, userId: 
   });
 }
 
+export async function loadRecentMessagesWithJson(
+  conversationId: string,
+  userId: string,
+) {
+  const conversation = await findConversationForUser(conversationId, userId);
+  if (!conversation) {
+    return null;
+  }
+
+  const messages = await prisma.tutorMessage.findMany({
+    where: { conversationId },
+    orderBy: { createdAt: "asc" },
+    take: MAX_HISTORY_MESSAGES,
+    select: {
+      id: true,
+      role: true,
+      content: true,
+      createdAt: true,
+      responseJson: true,
+    },
+  });
+
+  return messages;
+}
+
 export async function loadRecentMessagesForPrompt(
   conversationId: string,
   userId: string,

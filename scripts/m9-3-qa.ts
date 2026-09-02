@@ -89,6 +89,8 @@ function sample(type: string) {
       type: "PRACTICE",
       answer: "Try this particle question.",
       practice: {
+        phase: "QUESTION",
+        difficulty: "MEDIUM",
         question: "今日は学校___行きます。",
         questionType: "MULTIPLE_CHOICE",
         choices: ["を", "に", "で", "と"],
@@ -125,7 +127,7 @@ async function main() {
   const {
     validateTutorResponsePayload,
     filterRelatedContentToGrounding,
-    prepareTutorResponseForStorageAndClient,
+    prepareTutorResponseForClient,
   } = await import("../src/server/tutor/tutor-safety");
   const { buildTutorPrompt } = await import("../src/server/tutor/tutor-prompt");
   const { sendTutorMessage } = await import("../src/server/tutor/tutor.service");
@@ -175,9 +177,9 @@ async function main() {
     hasExposedPracticeAnswerKey(safe)
       ? fail("Practice answer key stripped", "still exposed")
       : pass("Practice answer key stripped for client");
-    hasExposedPracticeAnswerKey(prepareTutorResponseForStorageAndClient(validated))
-      ? fail("Practice answer key stripped for storage", "still exposed")
-      : pass("Practice answer key stripped for storage");
+    hasExposedPracticeAnswerKey(prepareTutorResponseForClient(validated))
+      ? fail("Practice answer key stripped for client", "still exposed")
+      : pass("Practice answer key stripped for client");
   } else {
     fail("Practice sample", "invalid");
   }
@@ -354,9 +356,8 @@ async function main() {
     orderBy: { createdAt: "desc" },
   });
   stored?.responseJson &&
-  !hasExposedPracticeAnswerKey(stored.responseJson) &&
   validateTutorResponsePayload(stored.responseJson)
-    ? pass("Structured response persisted safely")
+    ? pass("Structured response persisted")
     : fail("Persistence", "invalid stored json");
 
   // Cross-user
