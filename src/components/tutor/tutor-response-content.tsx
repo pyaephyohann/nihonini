@@ -2,6 +2,9 @@
 
 import { TutorRecommendationCards } from "@/components/tutor/tutor-recommendation-cards";
 import { TutorSuggestedAction } from "@/components/tutor/tutor-suggested-action";
+import { TutorProgressInsight } from "@/components/tutor/tutor-progress-insight";
+import { TutorOutcomeInsight } from "@/components/tutor/tutor-outcome-insight";
+import { TutorCoachingInsight } from "@/components/tutor/tutor-coaching-insight";
 import type { TutorResponse } from "@/types/tutor";
 
 type TutorResponseContentProps = {
@@ -57,6 +60,18 @@ function LegacyCorrectionsBlock({
 export function TutorResponseContent({ response }: TutorResponseContentProps) {
   return (
     <div className="mt-3 space-y-3 border-t border-border/60 pt-3 text-sm">
+      {"progressContext" in response && response.progressContext && (
+        <TutorProgressInsight progress={response.progressContext} />
+      )}
+      
+      {"outcomeContext" in response && response.outcomeContext && (
+        <TutorOutcomeInsight outcomeContext={response.outcomeContext} />
+      )}
+
+      {"adaptiveCoachingContext" in response && response.adaptiveCoachingContext && (
+        <TutorCoachingInsight coaching={response.adaptiveCoachingContext} />
+      )}
+
       {"explanation" in response && response.explanation && (
         <p className="whitespace-pre-wrap text-muted-foreground">{response.explanation}</p>
       )}

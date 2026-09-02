@@ -99,6 +99,12 @@ export type TutorComparisonDetail = {
   }>;
 };
 
+import type {
+  TutorOutcomeContext,
+  TutorProgressContext,
+} from "@/server/tutor/outcome/tutor-outcome.types";
+import type { TutorAdaptiveCoachingContext } from "@/server/tutor/coaching/tutor-coaching.types";
+
 export type TutorPracticePayload = {
   phase: TutorPracticePhase;
   difficulty: TutorPracticeDifficulty;
@@ -114,13 +120,19 @@ export type TutorPracticePayload = {
   sessionSummary?: string;
 };
 
+type TutorResponseMetadata = {
+  progressContext?: TutorProgressContext;
+  outcomeContext?: TutorOutcomeContext;
+  adaptiveCoachingContext?: TutorAdaptiveCoachingContext;
+};
+
 /** Client-safe tutor response — practice payloads omit expectedAnswer. */
 export type TutorResponse =
-  | Exclude<TutorResponseInput, { type: "PRACTICE" }>
+  | (Exclude<TutorResponseInput, { type: "PRACTICE" }> & TutorResponseMetadata)
   | (Extract<TutorResponseInput, { type: "PRACTICE" }> & {
       practice: TutorPracticePayload;
-    })
-  | LegacyTutorResponseInput;
+    } & TutorResponseMetadata)
+  | (LegacyTutorResponseInput & TutorResponseMetadata);
 
 export type { TutorResponseType, TutorSuggestedActionType };
 

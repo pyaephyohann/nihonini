@@ -17,6 +17,9 @@ import { buildPromptHistory } from "@/server/tutor/tutor-history";
 import { isTutorProviderConfigured, tutorConfig } from "@/server/tutor/tutor-config";
 import { buildTutorPrompt } from "@/server/tutor/tutor-prompt";
 import { buildTutorRecommendationContext } from "@/server/tutor/recommendation/tutor-recommendation.service";
+import { buildTutorOutcomeContext } from "@/server/tutor/outcome/tutor-outcome.service";
+import { buildTutorProgressContext } from "@/server/tutor/progress/tutor-progress-context.service";
+import { determineCoachingPolicy } from "@/server/tutor/coaching/tutor-coaching-policy";
 import {
   buildGuidedPracticeContext,
   buildStalePracticeClarification,
@@ -203,7 +206,28 @@ export async function sendTutorMessage(input: {
       ? await buildTutorRecommendationContext(input.userId, userMessage)
       : null;
 
+  const [progressContext, outcomeContext] =
+    practiceState.kind === "no_active_practice"
+      ? await Promise.all([
+          buildTutorProgressContext(input.userId, userMessage),
+          buildTutorOutcomeContext({
+            userId: input.userId,
+            conversationId,
+            userMessage,
+          }),
+        ])
+      : [null, null];
+
   const jlptLevel = learnerContext.profile.japaneseLevel;
+  
+  const adaptiveCoachingContext =
+    practiceState.kind === "no_active_practice"
+      ? determineCoachingPolicy({
+          outcomeContext: outcomeContext ?? undefined,
+          progressContext: progressContext ?? undefined,
+        })
+      : null;
+
   const grounding = await buildTutorGrounding({
     message: userMessage,
     jlptLevel,
@@ -215,6 +239,9 @@ export async function sendTutorMessage(input: {
     grounding,
     history,
     userMessage,
+    progressContext: progressContext ?? undefined,
+    outcomeContext: outcomeContext ?? undefined,
+    adaptiveCoachingContext: adaptiveCoachingContext ?? undefined,
     guidedPracticeContext,
     recommendationContext: recommendationBundle?.context,
   });
@@ -252,7 +279,7 @@ export async function sendTutorMessage(input: {
     if (recommendationBundle) {
       afterRecommendation = filterRecommendationsToTrustedCandidates(
         filtered,
-        recommendationBundle.candidates,
+        recommendationBundle.context.trustedCandidates,
       );
     } else {
       afterRecommendation = buildFallbackRefusalResponse();
@@ -262,11 +289,18 @@ export async function sendTutorMessage(input: {
   const enforced = enforcePracticeResponseRules(afterRecommendation);
   const fullResponse = enforced ?? buildFallbackRefusalResponse();
 
+  const responseWithContext = {
+    ...fullResponse,
+    ...(progressContext && { progressContext }),
+    ...(outcomeContext && { outcomeContext }),
+    ...(adaptiveCoachingContext && { adaptiveCoachingContext }),
+  };
+
   return persistAssistantAndBuildResult({
     conversationId,
     userId: input.userId,
     savedUserMessage,
-    fullResponse,
+    fullResponse: responseWithContext as unknown as typeof fullResponse,
   });
 }
 
@@ -299,11 +333,28 @@ export async function buildTutorDebugSnapshot(input: {
     }
   }
 
+  const [progressContext, outcomeContext] = input.conversationId
+    ? await Promise.all([
+        buildTutorProgressContext(input.userId, input.message),
+        buildTutorOutcomeContext({
+          userId: input.userId,
+          conversationId: input.conversationId,
+          userMessage: input.message,
+        }),
+      ])
+    : [null, null];
+
   const prompt = buildTutorPrompt({
     learnerContext,
     grounding,
     history,
     userMessage: input.message,
+    progressContext: progressContext ?? undefined,
+    outcomeContext: outcomeContext ?? undefined,
+    adaptiveCoachingContext: (progressContext || outcomeContext) ? determineCoachingPolicy({
+      outcomeContext: outcomeContext ?? undefined,
+      progressContext: progressContext ?? undefined,
+    }) ?? undefined : undefined,
   });
 
   return {

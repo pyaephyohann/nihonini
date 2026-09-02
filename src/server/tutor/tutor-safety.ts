@@ -150,10 +150,7 @@ export function filterRecommendationsToTrustedCandidates(
   const recommendations =
     matched.length > 0
       ? matched.slice(0, 3)
-      : trustedCandidates.slice(0, 3).map(({ score: _score, ...candidate }) => {
-          void _score;
-          return candidate;
-        });
+      : trustedCandidates.slice(0, 3);
 
   return {
     ...response,
