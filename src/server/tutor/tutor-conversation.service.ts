@@ -34,14 +34,34 @@ function mapMessage(row: {
     return base;
   }
 
-  const parsed = validateTutorResponsePayload(row.responseJson);
+  const record = (row.responseJson || {}) as Record<string, unknown>;
+  const {
+    progressContext,
+    outcomeContext,
+    adaptiveCoachingContext,
+    ...corePayload
+  } = record;
+
+  const parsed = validateTutorResponsePayload(corePayload);
   if (!parsed) {
     return base;
   }
 
+  const restored = {
+    ...parsed,
+  } as Parameters<typeof prepareTutorResponseForClient>[0] & {
+    progressContext?: unknown;
+    outcomeContext?: unknown;
+    adaptiveCoachingContext?: unknown;
+  };
+
+  if (progressContext) restored.progressContext = progressContext;
+  if (outcomeContext) restored.outcomeContext = outcomeContext;
+  if (adaptiveCoachingContext) restored.adaptiveCoachingContext = adaptiveCoachingContext;
+
   return {
     ...base,
-    response: prepareTutorResponseForClient(parsed),
+    response: prepareTutorResponseForClient(restored as Parameters<typeof prepareTutorResponseForClient>[0]),
   };
 }
 

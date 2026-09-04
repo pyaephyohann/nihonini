@@ -1,20 +1,25 @@
 import Link from "next/link";
 import { requireAuth } from "@/server/auth/require-auth";
 import { findSafeUserById } from "@/server/users/user.repository";
-import { getDashboardSnapshot } from "@/server/learning/daily-learning.service";
+import { buildDashboardViewModel } from "@/server/dashboard/dashboard-view-model.service";
+import { buildContinueLearningHref } from "@/lib/dashboard/dashboard-view-model";
 import { getUserLearningAnalytics } from "@/server/learning/analytics.service";
 import { getLatestMockExamSummary } from "@/server/learning/mock-exam.service";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { LearningPreferencesForm } from "@/components/learning/learning-preferences-form";
 import { LearningOverview } from "@/components/analytics/learning-overview";
+import { DashboardNextActionSection } from "@/components/dashboard/dashboard-next-action";
 
 export default async function AppDashboardPage() {
   const session = await requireAuth();
   const user = await findSafeUserById(session.user.id);
-  const dashboard = await getDashboardSnapshot(session.user.id);
+  const dashboardViewModel = await buildDashboardViewModel(session.user.id);
+  const dashboard = dashboardViewModel.snapshot;
+  const { nextAction } = dashboardViewModel;
   const analytics = await getUserLearningAnalytics(session.user.id);
   const latestMockExam = await getLatestMockExamSummary(session.user.id);
+  const continueHref = buildContinueLearningHref(dashboard.continueLearning);
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6 lg:px-8">
@@ -29,11 +34,7 @@ export default async function AppDashboardPage() {
           Continue your Japanese learning journey with structured JLPT-aligned
           lessons.
         </p>
-        <div className="mt-6">
-          <Link href={dashboard.continueLearning.lessonSlug ? `/app/learn/${dashboard.continueLearning.lessonSlug}` : "/app/learn"}>
-            <Button>Start learning</Button>
-          </Link>
-        </div>
+        <DashboardNextActionSection action={nextAction} />
       </div>
 
       {user?.profile && (
@@ -79,15 +80,24 @@ export default async function AppDashboardPage() {
               {dashboard.dailyProgress.percentage}%
             </p>
           </Card>
-          <Card>
-            <h2 className="text-sm font-medium text-muted-foreground">Due reviews</h2>
-            <p className="mt-1 text-2xl font-bold text-foreground">
-              {dashboard.dueReviews.total}
-            </p>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Vocab {dashboard.dueReviews.vocabulary} · Grammar {dashboard.dueReviews.grammar} · Kanji {dashboard.dueReviews.kanji}
-            </p>
-          </Card>
+          <Link
+            href="/app/review"
+            className="block rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+          >
+            <Card className="transition-colors hover:bg-muted/40">
+              <h2 className="text-sm font-medium text-muted-foreground">Due reviews</h2>
+              <p className="mt-1 text-2xl font-bold text-foreground">
+                {dashboard.dueReviews.total}
+              </p>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Vocab {dashboard.dueReviews.vocabulary} · Grammar{" "}
+                {dashboard.dueReviews.grammar} · Kanji {dashboard.dueReviews.kanji}
+              </p>
+              {dashboard.dueReviews.total > 0 && (
+                <p className="mt-2 text-xs font-medium text-primary">Review now →</p>
+              )}
+            </Card>
+          </Link>
           <Card className="sm:col-span-2 lg:col-span-2">
             <h2 className="text-sm font-medium text-muted-foreground">
               Continue learning
@@ -99,7 +109,7 @@ export default async function AppDashboardPage() {
               {dashboard.continueLearning.progressPercent}% progress
             </p>
             <div className="mt-3">
-              <Link href={dashboard.continueLearning.lessonSlug ? `/app/learn/${dashboard.continueLearning.lessonSlug}` : "/app/learn"}>
+              <Link href={continueHref}>
                 <Button size="sm">Continue</Button>
               </Link>
             </div>

@@ -3,6 +3,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ProgressBar } from "@/components/analytics/progress-bar";
 import { SkillStatCard } from "@/components/analytics/skill-stat-card";
+import { buildPracticeSessionHref } from "@/lib/learning/learning-links";
 import type { LearningAnalytics } from "@/types/learning";
 
 type LearningOverviewProps = {
@@ -133,7 +134,12 @@ export function LearningOverview({ analytics }: LearningOverviewProps) {
                     </p>
                   </div>
                   <Link
-                    href={`/app/practice/session?level=${item.level}&skill=${item.skill}&mode=WEAKNESS&count=10`}
+                    href={buildPracticeSessionHref({
+                      level: item.level,
+                      skill: item.skill,
+                      mode: "WEAKNESS",
+                      count: 10,
+                    })}
                   >
                     <Button size="sm" variant="secondary">
                       Practice

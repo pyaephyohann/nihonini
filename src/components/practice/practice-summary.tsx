@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { buildPracticeSessionHref } from "@/lib/learning/learning-links";
+import type { JapaneseLevel } from "@/generated/prisma/client";
 import type { PracticeMode, PracticeSkill } from "@/types/learning";
 
 type PracticeSummaryProps = {
@@ -56,7 +58,12 @@ export function PracticeSummary({
           <Button variant="secondary">Back to learn</Button>
         </Link>
         <Link
-          href={`/app/practice/session?level=${level}&skill=${skill}&mode=${mode}&count=${total}`}
+          href={buildPracticeSessionHref({
+            level: level as JapaneseLevel,
+            skill,
+            mode,
+            count: total === 5 || total === 10 || total === 20 ? total : 10,
+          })}
         >
           <Button>Practice again</Button>
         </Link>

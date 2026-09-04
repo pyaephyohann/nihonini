@@ -10,6 +10,7 @@ import { countUserMessagesSince } from "@/server/tutor/tutor.repository";
 export const tutorRateLimitErrors = {
   tooFast: "You're sending messages too quickly. Please wait a moment.",
   dailyLimit: "You've reached today's tutor message limit. Please try again tomorrow.",
+  duplicateMessage: "Please wait a moment before sending the same message again.",
 } as const;
 
 export async function checkTutorRateLimit(userId: string): Promise<{ error: string } | null> {

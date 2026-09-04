@@ -10,6 +10,7 @@ import { TutorEmptyState } from "@/components/tutor/tutor-empty-state";
 import { TutorMessageList } from "@/components/tutor/tutor-message-list";
 import { sendTutorMessageAction } from "@/server/tutor/tutor.actions";
 import type { TutorConversationSummary, TutorMessageDto } from "@/types/tutor";
+import type { JapaneseLevel } from "@/generated/prisma/client";
 
 type TutorChatViewProps = {
   conversations: TutorConversationSummary[];
@@ -18,6 +19,7 @@ type TutorChatViewProps = {
   title?: string;
   tutorEnabled: boolean;
   showSidebar?: boolean;
+  learnerLevel?: JapaneseLevel;
 };
 
 export function TutorChatView({
@@ -27,6 +29,7 @@ export function TutorChatView({
   title,
   tutorEnabled,
   showSidebar = true,
+  learnerLevel,
 }: TutorChatViewProps) {
   const router = useRouter();
   const [messages, setMessages] = useState(initialMessages);
@@ -67,9 +70,9 @@ export function TutorChatView({
   };
 
   return (
-    <div className="flex min-h-[calc(100vh-73px)] flex-col lg:flex-row">
+    <div className="flex min-h-[calc(100vh-73px)] min-w-0 flex-col lg:flex-row">
       {showSidebar && (
-        <aside className="border-b border-border bg-secondary/40 p-4 lg:w-80 lg:border-b-0 lg:border-r">
+        <aside className="min-w-0 border-b border-border bg-secondary/40 p-4 lg:w-80 lg:shrink-0 lg:border-b-0 lg:border-r">
           <div className="mb-4 flex items-center justify-between gap-2">
             <h2 className="text-sm font-semibold text-foreground">Conversations</h2>
             <Link href="/app/tutor">
@@ -85,7 +88,7 @@ export function TutorChatView({
         </aside>
       )}
 
-      <section className="flex min-h-0 flex-1 flex-col">
+      <section className="flex min-h-0 min-w-0 flex-1 flex-col">
         <div className="border-b border-border px-4 py-3 sm:px-6">
           <div className="mx-auto flex max-w-3xl items-center justify-between gap-3">
             <div>
@@ -114,7 +117,11 @@ export function TutorChatView({
               <TutorEmptyState disabled={!tutorEnabled} />
             </div>
           ) : (
-            <TutorMessageList messages={messages} isPending={isPending} />
+            <TutorMessageList
+              messages={messages}
+              isPending={isPending}
+              learnerLevel={learnerLevel}
+            />
           )}
 
           {error && (

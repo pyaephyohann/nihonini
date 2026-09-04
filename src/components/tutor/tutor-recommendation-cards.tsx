@@ -1,8 +1,7 @@
-"use client";
-
 import Link from "next/link";
 import { Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import type { LearningLinkContext } from "@/lib/learning/learning-links";
 import {
   getRecommendationHref,
   getSuggestedActionHref,
@@ -26,20 +25,32 @@ export type TutorRecommendationItem = {
 
 type TutorRecommendationCardsProps = {
   recommendations: TutorRecommendationItem[];
+  linkContext?: LearningLinkContext;
 };
 
-function resolveActionHref(item: TutorRecommendationItem): string | null {
-  const contentHref = getRecommendationHref(item.type, item.contentId);
+function resolveActionHref(
+  item: TutorRecommendationItem,
+  linkContext?: LearningLinkContext,
+): string | null {
+  const context: LearningLinkContext = {
+    ...linkContext,
+    targetSkill: item.targetSkill ?? linkContext?.targetSkill,
+  };
+
+  const contentHref = getRecommendationHref(item.type, item.contentId, context);
   if (contentHref) {
     return contentHref;
   }
   if (item.suggestedAction?.type) {
-    return getSuggestedActionHref(item.suggestedAction.type);
+    return getSuggestedActionHref(item.suggestedAction.type, context);
   }
   return null;
 }
 
-export function TutorRecommendationCards({ recommendations }: TutorRecommendationCardsProps) {
+export function TutorRecommendationCards({
+  recommendations,
+  linkContext,
+}: TutorRecommendationCardsProps) {
   if (recommendations.length === 0) {
     return null;
   }
@@ -50,7 +61,7 @@ export function TutorRecommendationCards({ recommendations }: TutorRecommendatio
         Your next best steps
       </p>
       {recommendations.map((item) => {
-        const href = resolveActionHref(item);
+        const href = resolveActionHref(item, linkContext);
         const actionLabel = item.suggestedAction?.label ?? "Start";
 
         return (

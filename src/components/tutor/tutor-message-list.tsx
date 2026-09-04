@@ -4,13 +4,19 @@ import { useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
 import { TutorResponseContent } from "@/components/tutor/tutor-response-content";
 import type { TutorMessageDto } from "@/types/tutor";
+import type { JapaneseLevel } from "@/generated/prisma/client";
 
 type TutorMessageListProps = {
   messages: TutorMessageDto[];
   isPending?: boolean;
+  learnerLevel?: JapaneseLevel;
 };
 
-export function TutorMessageList({ messages, isPending = false }: TutorMessageListProps) {
+export function TutorMessageList({
+  messages,
+  isPending = false,
+  learnerLevel,
+}: TutorMessageListProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -47,7 +53,10 @@ export function TutorMessageList({ messages, isPending = false }: TutorMessageLi
                 {message.content}
               </p>
               {!isUser && message.response && (
-                <TutorResponseContent response={message.response} />
+                <TutorResponseContent
+                  response={message.response}
+                  linkContext={learnerLevel ? { level: learnerLevel } : undefined}
+                />
               )}
             </div>
           </div>

@@ -5,6 +5,7 @@ import {
   getTutorConversation,
   listTutorConversations,
 } from "@/server/tutor/tutor-conversation.service";
+import { findSafeUserById } from "@/server/users/user.repository";
 import { TutorChatView } from "@/components/tutor/tutor-chat-view";
 
 type TutorConversationPageProps = {
@@ -17,12 +18,14 @@ export default async function TutorConversationPage({
   const session = await requireAuth();
   const { conversationId } = await params;
 
-  const conversation = await getTutorConversation(session.user.id, conversationId);
+  const [conversation, conversations, user] = await Promise.all([
+    getTutorConversation(session.user.id, conversationId),
+    listTutorConversations(session.user.id),
+    findSafeUserById(session.user.id),
+  ]);
   if (!conversation) {
     notFound();
   }
-
-  const conversations = await listTutorConversations(session.user.id);
 
   return (
     <TutorChatView
@@ -31,6 +34,7 @@ export default async function TutorConversationPage({
       initialMessages={conversation.messages}
       title={conversation.title}
       tutorEnabled={tutorConfig.enabled}
+      learnerLevel={user?.profile?.japaneseLevel}
     />
   );
 }

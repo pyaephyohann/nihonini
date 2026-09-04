@@ -200,3 +200,75 @@ export async function findRecentDuplicateUserMessage(
     select: { id: true },
   });
 }
+
+type UserMessageRow = {
+  id: string;
+  role: "USER";
+  content: string;
+  createdAt: Date;
+  responseJson: null;
+};
+
+export type CreateUserMessageWithDuplicateGuardResult =
+  | { status: "created"; message: UserMessageRow }
+  | { status: "duplicate" }
+  | { status: "not_found" };
+
+/** Atomically locks the conversation row, checks the duplicate window, and inserts one USER message. */
+export async function createUserMessageWithDuplicateGuard(input: {
+  conversationId: string;
+  userId: string;
+  content: string;
+  since: Date;
+}): Promise<CreateUserMessageWithDuplicateGuardResult> {
+  return prisma.$transaction(async (tx) => {
+    const locked = await tx.tutorConversation.updateMany({
+      where: { id: input.conversationId, userId: input.userId },
+      data: { updatedAt: new Date() },
+    });
+
+    if (locked.count === 0) {
+      return { status: "not_found" };
+    }
+
+    const duplicate = await tx.tutorMessage.findFirst({
+      where: {
+        conversationId: input.conversationId,
+        role: "USER",
+        content: input.content,
+        createdAt: { gte: input.since },
+      },
+      select: { id: true },
+    });
+
+    if (duplicate) {
+      return { status: "duplicate" };
+    }
+
+    const message = await tx.tutorMessage.create({
+      data: {
+        conversationId: input.conversationId,
+        role: "USER",
+        content: input.content,
+      },
+      select: {
+        id: true,
+        role: true,
+        content: true,
+        createdAt: true,
+        responseJson: true,
+      },
+    });
+
+    return {
+      status: "created",
+      message: {
+        id: message.id,
+        role: "USER",
+        content: message.content,
+        createdAt: message.createdAt,
+        responseJson: null,
+      },
+    };
+  });
+}

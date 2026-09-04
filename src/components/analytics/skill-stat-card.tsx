@@ -2,7 +2,12 @@ import Link from "next/link";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ProgressBar } from "@/components/analytics/progress-bar";
-import type { LearningSkill, SkillAnalytics } from "@/types/learning";
+import {
+  buildLearningActionHref,
+  buildPracticeSessionHref,
+} from "@/lib/learning/learning-links";
+import type { JapaneseLevel } from "@/generated/prisma/client";
+import type { LearningSkill, PracticeSkill, SkillAnalytics } from "@/types/learning";
 
 const skillLabels: Record<LearningSkill, string> = {
   VOCABULARY: "Vocabulary",
@@ -13,9 +18,18 @@ const skillLabels: Record<LearningSkill, string> = {
 };
 
 const skillPracticeHref = (skill: LearningSkill, level: string): string | null => {
-  if (skill === "READING") return "/app/learn/reading";
-  if (skill === "LISTENING") return "/app/learn/listening";
-  return `/app/practice/session?level=${level}&skill=${skill}&mode=WEAKNESS&count=10`;
+  if (skill === "READING") {
+    return buildLearningActionHref({ type: "READING_CATALOG" });
+  }
+  if (skill === "LISTENING") {
+    return buildLearningActionHref({ type: "LISTENING_CATALOG" });
+  }
+  return buildPracticeSessionHref({
+    level: level as JapaneseLevel,
+    skill: skill as PracticeSkill,
+    mode: "WEAKNESS",
+    count: 10,
+  });
 };
 
 type SkillStatCardProps = {
@@ -26,6 +40,7 @@ type SkillStatCardProps = {
 
 export function SkillStatCard({ analytics, level, compact = false }: SkillStatCardProps) {
   const label = skillLabels[analytics.skill];
+  const practiceHref = skillPracticeHref(analytics.skill, level);
 
   return (
     <Card className={compact ? "p-4" : undefined}>
@@ -71,8 +86,8 @@ export function SkillStatCard({ analytics, level, compact = false }: SkillStatCa
       )}
 
       <div className="mt-4">
-        {skillPracticeHref(analytics.skill, level) ? (
-          <Link href={skillPracticeHref(analytics.skill, level)!}>
+        {practiceHref ? (
+          <Link href={practiceHref}>
             <Button size="sm" variant="secondary">
               {analytics.skill === "READING"
                 ? "Open reading"

@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <rect width="32" height="32" rx="8" fill="#ffde4e"/>
+  <text
+    x="16"
+    y="23.2"
+    font-family="'Noto Sans JP', 'Hiragino Kaku Gothic ProN', 'Yu Gothic', 'MS Gothic', system-ui, sans-serif"
+    font-size="18"
+    font-weight="700"
+    fill="#1a1a1a"
+    text-anchor="middle"
+  >日</text>
+</svg>

@@ -1,19 +1,55 @@
 import type { LegacyTutorResponseInput, TutorResponseInput } from "@/lib/validations/tutor";
+import type { TutorAdaptiveCoachingContext } from "@/server/tutor/coaching/tutor-coaching.types";
+import type { TutorOutcomeContext } from "@/server/tutor/outcome/tutor-outcome.types";
 
-/** Strip internal practice fields before sending to the client. */
+type TutorPayloadWithMetadata = (TutorResponseInput | LegacyTutorResponseInput) & {
+  adaptiveCoachingContext?: TutorAdaptiveCoachingContext;
+  outcomeContext?: TutorOutcomeContext;
+};
+
+/** Strip internal practice fields, policy metadata, and database IDs before sending to the client. */
 export function toClientSafeTutorResponse(
   response: TutorResponseInput | LegacyTutorResponseInput,
 ): TutorResponseInput | LegacyTutorResponseInput {
-  if (response.type !== "PRACTICE") {
-    return response;
+  const safe = { ...response } as TutorPayloadWithMetadata;
+
+  // Strip internal prompt metadata from coaching context
+  if (safe.adaptiveCoachingContext) {
+    const { recommendedBehavior: _omitted, ...safeCoaching } = safe.adaptiveCoachingContext;
+    void _omitted;
+    safe.adaptiveCoachingContext = safeCoaching as TutorAdaptiveCoachingContext;
   }
 
-  const { expectedAnswer: _removed, ...practice } = response.practice;
+  // Strip internal database IDs from outcome context
+  if (safe.outcomeContext) {
+    const safeOutcomeContext = { ...safe.outcomeContext };
+    
+    if (safeOutcomeContext.recommendation) {
+      const { messageId: _msgId, contentId: _cId1, ...safeRec } = safeOutcomeContext.recommendation;
+      void _msgId;
+      void _cId1;
+      safeOutcomeContext.recommendation = safeRec as typeof safeOutcomeContext.recommendation;
+    }
+    
+    if (safeOutcomeContext.outcome) {
+      const { contentId: _cId2, ...safeOut } = safeOutcomeContext.outcome;
+      void _cId2;
+      safeOutcomeContext.outcome = safeOut as typeof safeOutcomeContext.outcome;
+    }
+    
+    safe.outcomeContext = safeOutcomeContext;
+  }
+
+  if (safe.type !== "PRACTICE") {
+    return safe as TutorResponseInput | LegacyTutorResponseInput;
+  }
+
+  const { expectedAnswer: _removed, ...practice } = safe.practice;
   void _removed;
   return {
-    ...response,
+    ...safe,
     practice,
-  };
+  } as TutorResponseInput | LegacyTutorResponseInput;
 }
 
 /** Returns true if the serialized response contains an exposed practice answer key. */

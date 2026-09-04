@@ -5,10 +5,14 @@ import { TutorSuggestedAction } from "@/components/tutor/tutor-suggested-action"
 import { TutorProgressInsight } from "@/components/tutor/tutor-progress-insight";
 import { TutorOutcomeInsight } from "@/components/tutor/tutor-outcome-insight";
 import { TutorCoachingInsight } from "@/components/tutor/tutor-coaching-insight";
+import type { JapaneseLevel } from "@/generated/prisma/client";
+import type { LearningLinkContext } from "@/lib/learning/learning-links";
+import { resolvePracticeLevel } from "@/lib/learning/learning-links";
 import type { TutorResponse } from "@/types/tutor";
 
 type TutorResponseContentProps = {
   response: TutorResponse;
+  linkContext?: LearningLinkContext;
 };
 
 function ExamplesBlock({
@@ -57,7 +61,19 @@ function LegacyCorrectionsBlock({
   );
 }
 
-export function TutorResponseContent({ response }: TutorResponseContentProps) {
+export function TutorResponseContent({ response, linkContext }: TutorResponseContentProps) {
+  const progressLevel =
+    "progressContext" in response && response.progressContext
+      ? resolvePracticeLevel({
+          level: response.progressContext.jlpt.current as JapaneseLevel,
+        })
+      : null;
+
+  const resolvedLinkContext: LearningLinkContext = {
+    ...linkContext,
+    level: linkContext?.level ?? progressLevel ?? undefined,
+  };
+
   return (
     <div className="mt-3 space-y-3 border-t border-border/60 pt-3 text-sm">
       {"progressContext" in response && response.progressContext && (
@@ -141,7 +157,10 @@ export function TutorResponseContent({ response }: TutorResponseContentProps) {
       )}
 
       {response.type === "RECOMMENDATION" && (
-        <TutorRecommendationCards recommendations={response.recommendations} />
+        <TutorRecommendationCards
+          recommendations={response.recommendations}
+          linkContext={resolvedLinkContext}
+        />
       )}
 
       {response.type === "PRACTICE" && (
@@ -232,7 +251,10 @@ export function TutorResponseContent({ response }: TutorResponseContentProps) {
         )}
 
       {"suggestedAction" in response && response.suggestedAction && (
-        <TutorSuggestedAction action={response.suggestedAction} />
+        <TutorSuggestedAction
+          action={response.suggestedAction}
+          linkContext={resolvedLinkContext}
+        />
       )}
     </div>
   );

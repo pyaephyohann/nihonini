@@ -8,6 +8,7 @@ import {
 } from "@/server/learning/practice-session.service";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { buildPracticeSessionHref } from "@/lib/learning/learning-links";
 import { PracticeConfigForm } from "@/components/practice/practice-config-form";
 import { PracticeSkillCards } from "@/components/practice/practice-skill-cards";
 
@@ -78,7 +79,12 @@ export default async function PracticePage() {
                   </p>
                   <div className="mt-2">
                     <Link
-                      href={`/app/practice/session?level=${item.level}&skill=${item.skill}&mode=WEAKNESS&count=10`}
+                      href={buildPracticeSessionHref({
+                        level: item.level,
+                        skill: item.skill,
+                        mode: "WEAKNESS",
+                        count: 10,
+                      })}
                     >
                       <Button size="sm" variant="secondary">
                         Practice {item.skill.toLowerCase()}

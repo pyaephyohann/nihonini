@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { buildPracticeSessionHref } from "@/lib/learning/learning-links";
 
 type PracticeSkillCardsProps = {
   availability: Record<
@@ -60,7 +61,12 @@ export function PracticeSkillCards({ availability }: PracticeSkillCardsProps) {
             <div className="mt-4">
               {firstActiveLevel ? (
                 <Link
-                  href={`/app/practice/session?level=${firstActiveLevel}&skill=${skill.key}&mode=LEVEL&count=10`}
+                  href={buildPracticeSessionHref({
+                    level: firstActiveLevel,
+                    skill: skill.key,
+                    mode: "LEVEL",
+                    count: 10,
+                  })}
                 >
                   <Button size="sm">Practice</Button>
                 </Link>

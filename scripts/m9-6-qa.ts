@@ -306,11 +306,11 @@ async function main() {
         title: `M961 Reading ${suffix}`,
         slug: `m961-reading-${suffix}`,
         passage: "テスト",
-        jlptLevel: "N5",
-        difficulty: 1,
-        estimatedMinutes: 5,
-        order: 9999,
-        published: true,
+      jlptLevel: "N5",
+      difficulty: 1,
+      estimatedMinutes: 5,
+      order: Math.floor(Math.random() * 1000000),
+      published: true,
         questions: {
           create: [
             {

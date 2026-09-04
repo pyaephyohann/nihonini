@@ -31,7 +31,7 @@ import {
   createAssistantMessage,
   createConversation,
   createUserMessage,
-  findRecentDuplicateUserMessage,
+  createUserMessageWithDuplicateGuard,
   loadRecentMessagesForPrompt,
   loadRecentMessagesWithJson,
   touchConversation,
@@ -39,6 +39,7 @@ import {
 import {
   checkTutorRateLimit,
   getDuplicateMessageCutoff,
+  tutorRateLimitErrors,
 } from "@/server/tutor/tutor-rate-limit.service";
 import {
   buildFallbackRefusalResponse,
@@ -123,20 +124,12 @@ export async function sendTutorMessage(input: {
   }
 
   let conversationId = parsed.data.conversationId;
+  const isExistingConversation = Boolean(conversationId);
 
   if (conversationId) {
     const access = await ensureTutorConversationAccess(conversationId, input.userId);
     if ("error" in access) {
       return { error: access.error };
-    }
-
-    const duplicate = await findRecentDuplicateUserMessage(
-      conversationId,
-      userMessage,
-      getDuplicateMessageCutoff(),
-    );
-    if (duplicate) {
-      return { error: "Please wait a moment before sending the same message again." };
     }
   } else {
     const conversation = await createConversation(
@@ -146,8 +139,33 @@ export async function sendTutorMessage(input: {
     conversationId = conversation.id;
   }
 
-  const savedUserMessage = await createUserMessage(conversationId, userMessage);
-  await touchConversation(conversationId, input.userId);
+  let savedUserMessage: {
+    id: string;
+    content: string;
+    createdAt: Date;
+  };
+
+  if (isExistingConversation) {
+    const guarded = await createUserMessageWithDuplicateGuard({
+      conversationId,
+      userId: input.userId,
+      content: userMessage,
+      since: getDuplicateMessageCutoff(),
+    });
+
+    if (guarded.status === "duplicate") {
+      return { error: tutorRateLimitErrors.duplicateMessage, conversationId };
+    }
+
+    if (guarded.status === "not_found") {
+      return { error: "Conversation not found." };
+    }
+
+    savedUserMessage = guarded.message;
+  } else {
+    savedUserMessage = await createUserMessage(conversationId, userMessage);
+    await touchConversation(conversationId, input.userId);
+  }
 
   const messagesWithJson = await loadRecentMessagesWithJson(conversationId, input.userId);
   if (!messagesWithJson) {
